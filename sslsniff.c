@@ -14,22 +14,16 @@ int main(int argc, char **argv) {
 
     int return_code;
     char* interface = NULL;
-    char* in_file = NULL;
-
-    return_code = parse_arg(argc,argv, &interface, &in_file);
-
     FILE *fd;
-    if (!(fd = fopen(in_file, "r")))
-    {
-        perror("Error while opening a file");
-        err_msg(ERR_FILE, "");
-    }
+
+    return_code = parse_arg(argc,argv, &interface, &fd);
+
 
     fclose(fd);
     return return_code;
 }
 
-int parse_arg(int argc, char **argv, char** interface, char** in_file){
+int parse_arg(int argc, char **argv, char** interface, FILE** in_file){
     int opt;
     bool i_used, r_used = false;
 
@@ -47,7 +41,11 @@ int parse_arg(int argc, char **argv, char** interface, char** in_file){
                 debug("option: %c", opt);
                 debug("filename: %s", optarg);
                 r_used = true;
-                *in_file = optarg;
+                if (!(*in_file = fopen(optarg, "r")))
+                {
+                    perror("Error while opening a file");
+                    err_msg(ERR_FILE, "");
+                }
                 break;
             case ':':
                 err_msg(ERR_ARG,"Option needs value.");
