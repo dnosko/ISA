@@ -7,4 +7,4 @@ include_directories(.)
 
 add_executable(isa
         sslsniff.c
-        sslsniff.h)
+        sslsniff.h error.h)

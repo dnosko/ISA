@@ -78,6 +78,9 @@
 				</MakeCommands>
 			</Target>
 		</Build>
+		<Unit filename="/home/dasa/Dokumenty/school/ISA/isa/error.h">
+			<Option target="isa"/>
+		</Unit>
 		<Unit filename="/home/dasa/Dokumenty/school/ISA/isa/sslsniff.c">
 			<Option target="isa"/>
 		</Unit>

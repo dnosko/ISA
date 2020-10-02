@@ -7,44 +7,65 @@
 
 #include <getopt.h>
 #include "sslsniff.h"
+#include "error.h"
+
 
 int main(int argc, char **argv) {
-    char* interface = "";
-    FILE *in_file = NULL;
 
-    return parse_arg(argc, argv, interface, in_file);
+    int return_code;
+    char* interface = NULL;
+    char* in_file = NULL;
+
+    return_code = parse_arg(argc,argv, &interface, &in_file);
+
+    FILE *fd;
+    if (!(fd = fopen(in_file, "r")))
+    {
+        perror("Error while opening a file");
+        err_msg(ERR_FILE, "");
+    }
+
+    fclose(fd);
+    return return_code;
 }
 
-int parse_arg(int argc, char **argv, char* interface, FILE* in_file) {
-
-    if (argc > 3) {
-        err_msg("Too many arguments!",ERR_ARG);
-    }
-    else if (argc < 3) {
-        err_msg("Missing arguments!",ERR_ARG);
-    }
-
+int parse_arg(int argc, char **argv, char** interface, char** in_file){
     int opt;
-    while((opt = getopt(argc, argv,"ir:")) != -1) {
-        switch(opt) {
+    bool i_used, r_used = false;
+
+    while((opt = getopt(argc, argv, ":i:r:")) != -1)
+    {
+        switch(opt)
+        {
             case 'i':
-                interface = optarg;
-                if (optarg == NULL) {
-                    err_msg("Interface not specified.",ERR_ARG);
-                }
-                debug("hi");
+                debug("option: %c", opt);
+                debug("interface: %s", optarg);
+                i_used = true;
+                *interface = optarg;
                 break;
             case 'r':
-                //in_file = optarg;
+                debug("option: %c", opt);
+                debug("filename: %s", optarg);
+                r_used = true;
+                *in_file = optarg;
                 break;
+            case ':':
+                err_msg(ERR_ARG,"Option needs value.");
             default:
-                fprintf(stderr,"%s\n","Unknown parameter!");
+                err_msg(ERR_ARG,"Unknown option: %c\n", optopt);
         }
+
+    }
+
+    if (r_used == false || i_used == false) {
+        err_msg(ERR_ARG,"Options -r and -i are required.");
+    }
+
+    if (optind != argc) {
+        debug("%d",optind);
+        err_msg(ERR_ARG,"Extra arguments!");
     }
 
     return OK;
 }
 
-void debug(char* text) {
-    printf("%s\n",text);
-}

@@ -6,13 +6,11 @@
 
 #include <stdio.h>
 #include <ctype.h>
-#include <stdio.h>
 #include <stdlib.h>
+#include <argp.h>
+#include <string.h>
+#include <stdbool.h>
 
-#define OK 1
-#define ERR_ARG 2
 
-#define err_msg(msg, code) fprintf(stderr,"%s\n",msg); return code
 
-void debug(char* text); //DELETE
-int parse_arg(int argc, char **argv, char* interface, FILE* in_file);
+int parse_arg(int argc, char **argv, char** interface, char** in_file);

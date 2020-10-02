@@ -6,19 +6,31 @@
 
 #IncludeRegexTransform: 
 
+/home/dasa/Dokumenty/school/ISA/isa/error.h
+stdarg.h
+-
+stdio.h
+-
+
 /home/dasa/Dokumenty/school/ISA/isa/sslsniff.c
 getopt.h
 -
 sslsniff.h
 /home/dasa/Dokumenty/school/ISA/isa/sslsniff.h
+error.h
+/home/dasa/Dokumenty/school/ISA/isa/error.h
 
 /home/dasa/Dokumenty/school/ISA/isa/sslsniff.h
 stdio.h
 -
 ctype.h
 -
-stdio.h
--
 stdlib.h
+-
+argp.h
+-
+string.h
+-
+stdbool.h
 -
 
