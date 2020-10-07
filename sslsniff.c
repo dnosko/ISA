@@ -19,9 +19,9 @@ int main(int argc, char **argv) {
 
     return_code = parse_arg(argc,argv, &interface, &in_file);
 
-    /*if(in_file != NULL)
+    if(in_file != NULL)
         return_code = analyse_file_packets(in_file);
-*/
+
     return return_code;
 }
 

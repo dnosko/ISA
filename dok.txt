@@ -1,0 +1,5 @@
+http://blog.fourthbit.com/2014/12/23/traffic-analysis-of-an-ssl-slash-tls-session/
+
+SSL/TLS is a separate protocol that inserts itself between the application protocol (generally HTTP, but any other is perfectly possible) and the transport protocol (TCP). By acting as such, TLS requires very few changes to the protocols below and above, so the protocol can operate nearly transparently for users, meaning that users need not be aware of the fact that the protocol is in place. Of course this comes with some drawbacks, as it limits the protocol in some fundamental aspects (such as the inability to use UDP).
+
+
