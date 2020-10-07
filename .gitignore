@@ -48,3 +48,8 @@ Thumbs.db
 *.mov
 *.wmv
 
+#cmake
+*cmake
+
+#C byte code
+*.o
