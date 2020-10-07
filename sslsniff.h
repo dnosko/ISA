@@ -13,4 +13,4 @@
 
 
 
-int parse_arg(int argc, char **argv, char** interface, FILE** in_file);
+int parse_arg(int argc, char **argv, char** interface, char** in_file);

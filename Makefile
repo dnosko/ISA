@@ -1,5 +1,7 @@
 CC = gcc
 CFLAGS= -std=c99 -Wall -Wextra -Wno-missing-field-initializers -D_DEFAULT_SOURCE
+LDFLAGS= -lpcap #-I{usr/include/pcap.h}
+LDIR =../lib
 
 HEADERF := $(wildcard *.h)
 SOURCEF := $(wildcard *.c)
