@@ -14,7 +14,7 @@
 #define ERR_ARG 1
 #define ERR_FILE 2
 
-#define err_msg(code, fmt, ...) fprintf(stderr,"" fmt "\n",##__VA_ARGS__); exit(code)
+#define err_msg(code, fmt, ...) fprintf(stderr,"" fmt "\n",##__VA_ARGS__); return(code)
 #define debug(fmt,...) fprintf(stderr,"DEBUG: " fmt "\n",##__VA_ARGS__)
 
 
