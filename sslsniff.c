@@ -41,10 +41,18 @@ int parse_arg(int argc, char **argv, char** interface, FILE** in_file){
                 debug("option: %c", opt);
                 debug("filename: %s", optarg);
                 r_used = true;
-                if (!(*in_file = fopen(optarg, "r")))
+                /* check if file exists and can be opened */
+                if (!(*in_file = fopen(optarg, "rb")))
                 {
                     perror("Error while opening a file");
                     err_msg(ERR_FILE, "");
+                }
+
+                /*  check extension  */
+                const char *dot = strrchr(optarg,'.');
+                debug("extension: %s", dot);
+                if(!dot || dot == optarg || strcmp(dot,".pcapng") != 0) {
+                    err_msg(ERR_FILE,"Extension must be pcapng");
                 }
                 break;
             case ':':
