@@ -4,6 +4,7 @@
  *        Monitoring SSL spojenia
  ****************************************/
 
+#include <zconf.h>
 #include "analyser.h"
 
 
@@ -14,7 +15,7 @@ void intHandler(int dummy) {
 }
 
 int open_handler(char* interface, char* pcap_file) {
-    char errbuff[PCAP_ERRBUF_SIZE];
+    char errbuf[PCAP_ERRBUF_SIZE];
     pcap_t* handler;
     int return_code;
 
@@ -22,16 +23,14 @@ int open_handler(char* interface, char* pcap_file) {
 
     if(pcap_file != NULL){
         //open file
-        handler = pcap_open_offline(pcap_file, errbuff);
+        handler = pcap_open_offline(pcap_file, errbuf);
         CHECK_NULL_HANDLER
         return_code = analyse_file_packets(handler);
+        pcap_close(handler);
 
         if (return_code != OK) {
-            pcap_close(handler);
             return return_code;
         }
-
-        pcap_close(handler);
     }
 
     if(interface != NULL) {
@@ -39,15 +38,16 @@ int open_handler(char* interface, char* pcap_file) {
         bpf_u_int32 pNet;             /* ip address*/
 
 
-        if (pcap_lookupnet(interface, &pNet, &pMask, errbuff) == -1) {
-            err_msg(ERR_PCAP,"Error: %s", errbuff);
+        if (pcap_lookupnet(interface, &pNet, &pMask, errbuf) == -1) {
+            err_msg(ERR_PCAP, "Error: %s", errbuf);
         }
 
-        handler = pcap_open_live(interface, BUFSIZ, 0,-1,errbuff);
+        handler = pcap_open_live(interface, BUFSIZ, 0, -1, errbuf);
         CHECK_NULL_HANDLER
         analyse_interface_packets(handler, pNet);
-        //while (keepRunning) {}
+
         pcap_close(handler);
+
     }
 }
 
@@ -74,10 +74,10 @@ int analyse_interface_packets(pcap_t* handler,bpf_u_int32 pNet) {
         return ERR_PCAP;
     }
 
-    int cnt = -1; //infinite loop
+    int infinite_loop = -1;
     int return_code;
 
-    return_code = pcap_loop(handler,cnt, process_packet, NULL);
+    return_code = pcap_loop(handler,infinite_loop, process_packet, NULL);
     if (return_code == PCAP_ERROR || return_code == PCAP_ERROR_BREAK ) {
         debug("here");
         //pcap_close(handler);
@@ -110,6 +110,7 @@ int set_filter(pcap_t* handler,bpf_u_int32 netmask) {
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet) {
     debug("header secs: %lu", pkthdr->ts.tv_usec);
     //	IP header -> X + SIZE_ETHERNET
+
 
 }
 
