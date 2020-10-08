@@ -17,12 +17,18 @@
 #include <netinet/tcp.h>
 #include <netinet/ip.h>
 #include <string.h>
+#include <pcap/pcap.h>
+#include <signal.h>
+#include <stdbool.h>
 
 
-#define ETHERNET_SIZE sizeof(struct ethhdr)
+#define CHECK_NULL_HANDLER if (handler == NULL) {perror("Null handler"); err_msg(ERR_PCAP,"");}
+#define SSL_FILTER "tcp[((tcp[12] & 0xf0) >> 2)] = 0x16" // filter only SSL packets
 
-int analyse_interface_packets();
-int analyse_file_packets(char* pcap_file);
+int open_handler(char* interface, char* pcap_file);
+int analyse_file_packets(pcap_t* handler);
+int analyse_interface_packets(pcap_t* handler,bpf_u_int32 pNet);
+int set_filter(pcap_t* handler,bpf_u_int32 netmask);
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet);
 void check_protocol(const u_char *packet,  struct iphdr *iph, unsigned short *src_port,
                     unsigned short *dst_port);

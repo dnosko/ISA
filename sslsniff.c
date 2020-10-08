@@ -18,11 +18,11 @@ int main(int argc, char **argv) {
     char* in_file = NULL;
 
     return_code = parse_arg(argc,argv, &interface, &in_file);
+    if(return_code != OK)
+        return return_code;
 
-    if(in_file != NULL)
-        return_code = analyse_file_packets(in_file);
+    return open_handler(interface,in_file);
 
-    return return_code;
 }
 
 int parse_arg(int argc, char **argv, char** interface, char** in_file){
