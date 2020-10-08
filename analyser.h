@@ -23,7 +23,12 @@
 
 
 #define CHECK_NULL_HANDLER if (handler == NULL) {perror("Null handler"); err_msg(ERR_PCAP,"");}
-#define SSL_FILTER "tcp[((tcp[12] & 0xf0) >> 2)] = 0x16" // filter only SSL packets
+/* https://stackoverflow.com/questions/39624745/capture-only-ssl-handshake-with-tcpdump */
+#define ETHERNET_SIZE sizeof(struct ethhdr)
+#define SSL_FILTER "tcp[((tcp[12] & 0xf0) >> 2)] = 0x16" // filter only SSL packets with handshake  hello??
+
+void print_packet(const u_char* packet, unsigned X);
+
 
 int open_handler(char* interface, char* pcap_file);
 int analyse_file_packets(pcap_t* handler);

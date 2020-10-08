@@ -7,8 +7,11 @@
 #include <zconf.h>
 #include "analyser.h"
 
+//TODO <timestamp>,<client ip><client port>,<server ip><SNI>,<bytes>,<packets>,<duration sec>
 
 static volatile int keepRunning = false;
+
+int no_bytes;
 
 void intHandler(int dummy) {
     keepRunning = true;
@@ -108,9 +111,65 @@ int set_filter(pcap_t* handler,bpf_u_int32 netmask) {
 }
 
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet) {
+
+    no_bytes = pkthdr->len; // number of bytes of packet
     debug("header secs: %lu", pkthdr->ts.tv_usec);
     //	IP header -> X + SIZE_ETHERNET
+    struct iphdr *iph = (struct iphdr*)(packet + ETHERNET_SIZE);
+
+    unsigned X = 20;
+   // print_packet(packet,X);
+
+    unsigned short iphdrlen = iph->ihl*4;
+    debug("iphdrlen %u",iphdrlen);
+
+    struct tcphdr *tcph = (struct tcphdr*)(packet + ETHERNET_SIZE + iphdrlen);
+    u_char *payload; /* Packet payload */
+
+    unsigned short tcphdrlen = 32;
+
+    //struct ssl_st sslhd = (struct ssl_st*)(packet + ETHERNET_SIZE + iphdrlen+tcphdrlen);
+
+    payload = (u_char *)(packet + ETHERNET_SIZE + iphdrlen + tcphdrlen); // this is ssl payload
+
+    /* header zatial ale potrebujem aby skor nejaky koniec -> dlzka spojenia, prenos B  */
+    debug("handshake protocol type %0x %d",payload[0], payload[0]);
+    debug("handshake protocol type %0x",payload[1]);
+
+    unsigned size_of_packet = pkthdr->len/16;
+    for (unsigned i = 0; i < size_of_packet+1; i++) {
+        print_packet(payload,i);
+    }
 
 
+}
+
+void convert_ascii(char *ascii_str, unsigned int val) {
+    char ascii_val[16] = "";
+    unsigned int decimal = val; //decimal
+    if (32 <= decimal && decimal < 127) { //printable chars
+        sprintf(ascii_val,"%c",val);
+        strcat(ascii_str,ascii_val);
+    }
+    else { // non-printable values are replaced by a dot
+        strcat(ascii_str,".");
+    }
+}
+
+void print_packet(const u_char* packet, unsigned X) {
+
+    printf("0x%.3d0: ",X);
+    char ascii_str[16] = "";
+    unsigned Y = (X != 0) ? X*16 : 0; // print 0-15, 16-32, 32 - 64 ... B
+    for (unsigned i = Y; i < 16*(X+1); i++) {
+        if (no_bytes != 0) {
+            printf("%02X ", (unsigned int) packet[i]);
+            convert_ascii(ascii_str, (unsigned int) packet[i]);
+            no_bytes--;
+        }
+        else //if all packet has been printed, print spaces
+            printf("   ");
+    }
+    printf("%s\n",ascii_str);
 }
 
