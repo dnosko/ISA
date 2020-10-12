@@ -52,6 +52,8 @@ int open_handler(char* interface, char* pcap_file) {
         pcap_close(handler);
 
     }
+
+    return OK;
 }
 
 int analyse_file_packets(pcap_t* handler){
@@ -108,6 +110,8 @@ int set_filter(pcap_t* handler,bpf_u_int32 netmask) {
         //pcap_close(handler);
         return ERR_PCAP;
     }
+
+    return OK;
 }
 
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet) {
@@ -133,14 +137,17 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     payload = (u_char *)(packet + ETHERNET_SIZE + iphdrlen + tcphdrlen); // this is ssl payload
 
     /* header zatial ale potrebujem aby skor nejaky koniec -> dlzka spojenia, prenos B  */
-    debug("handshake protocol type %0x %d",payload[0], payload[0]);
-    debug("handshake protocol type %0x",payload[1]);
+    debug("handshake protocol type %0x %x",payload[5], payload[6]);
+    //printf("handshake protocol type %c %c",payload[5], payload[6]);
+    //print_packet(payload,6);
+    extract_data(payload,127,143);
+    print_packet(payload,7);
+    print_packet(payload,8);
 
     unsigned size_of_packet = pkthdr->len/16;
     for (unsigned i = 0; i < size_of_packet+1; i++) {
         print_packet(payload,i);
     }
-
 
 }
 
@@ -162,6 +169,23 @@ void print_packet(const u_char* packet, unsigned X) {
     char ascii_str[16] = "";
     unsigned Y = (X != 0) ? X*16 : 0; // print 0-15, 16-32, 32 - 64 ... B
     for (unsigned i = Y; i < 16*(X+1); i++) {
+        if (no_bytes != 0) {
+            printf("%02X ", (unsigned int) packet[i]);
+            convert_ascii(ascii_str, (unsigned int) packet[i]);
+            no_bytes--;
+        }
+        else //if all packet has been printed, print spaces
+            printf("   ");
+    }
+    printf("%s\n",ascii_str);
+}
+
+void extract_data(const u_char* packet, unsigned from_B, unsigned to_B) {
+    unsigned size = 1;
+    size = to_B - from_B;
+    char *ascii_str = malloc(to_B-from_B);
+    //unsigned Y = (X != 0) ? X*16 : 0; // print 0-15, 16-32, 32 - 64 ... B
+    for (unsigned i = from_B; i <= to_B; i++) {
         if (no_bytes != 0) {
             printf("%02X ", (unsigned int) packet[i]);
             convert_ascii(ascii_str, (unsigned int) packet[i]);

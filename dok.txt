@@ -1,5 +1,21 @@
 http://blog.fourthbit.com/2014/12/23/traffic-analysis-of-an-ssl-slash-tls-session/
 
+Record layer -> 
+Handshake layer -> Hello message, typ spravy na 6(12) Byte.
+    Handshake Type Values    dec      hex
+   -------------------------------------
+   HELLO_REQUEST              0     0x00
+   CLIENT_HELLO               1     0x01
+   SERVER_HELLO               2     0x02
+   CERTIFICATE               11     0x0b
+   SERVER_KEY_EXCHANGE       12     0x0c
+   CERTIFICATE_REQUEST       13     0x0d
+   SERVER_DONE               14     0x0e
+   CERTIFICATE_VERIFY        15     0x0f
+   CLIENT_KEY_EXCHANGE       16     0x10
+   FINISHED                  20     0x14
+
+
 SSL/TLS is a separate protocol that inserts itself between the application protocol (generally HTTP, but any other is perfectly possible) and the transport protocol (TCP). By acting as such, TLS requires very few changes to the protocols below and above, so the protocol can operate nearly transparently for users, meaning that users need not be aware of the fact that the protocol is in place. Of course this comes with some drawbacks, as it limits the protocol in some fundamental aspects (such as the inability to use UDP).
 
 https://tls.ulfheim.net/
@@ -14,3 +30,7 @@ https://www.netnea.com/cms/apache-tutorial-12_capturing-and-decrypting-entire-tr
 https://tools.ietf.org/html/rfc5246#section-7
 
 https://www.tcpdump.org/manpages/pcap.3pcap.html
+
+Typ spravy sa nachadza na 6(alebo 12??) Byte. 
+Hello = 01
+

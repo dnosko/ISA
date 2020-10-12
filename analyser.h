@@ -29,7 +29,7 @@
 
 void print_packet(const u_char* packet, unsigned X);
 
-
+void convert_ascii(char *ascii_str, unsigned int val);
 int open_handler(char* interface, char* pcap_file);
 int analyse_file_packets(pcap_t* handler);
 int analyse_interface_packets(pcap_t* handler,bpf_u_int32 pNet);
@@ -40,6 +40,6 @@ void check_protocol(const u_char *packet,  struct iphdr *iph, unsigned short *sr
 void get_port(const u_char *packet,struct iphdr *iph, char *type, unsigned short *src_port,
               unsigned short *dst_port);
 void get_src_dst_addr(char *src, char *dst, struct iphdr *iph);
-
+void extract_data(const u_char* packet, unsigned from_B, unsigned to_B);
 
 #endif //ISA_ANALYSER_H
