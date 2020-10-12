@@ -5,6 +5,7 @@
  ****************************************/
 
 #include <zconf.h>
+#include <openssl/ssl.h>
 #include "analyser.h"
 
 //TODO <timestamp>,<client ip><client port>,<server ip><SNI>,<bytes>,<packets>,<duration sec>
@@ -116,6 +117,8 @@ int set_filter(pcap_t* handler,bpf_u_int32 netmask) {
 
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet) {
 
+    Ssl_data* ssl_datagram = (Ssl_data*)(sizeof(Ssl_data));
+
     no_bytes = pkthdr->len; // number of bytes of packet
     debug("header secs: %lu", pkthdr->ts.tv_usec);
     //	IP header -> X + SIZE_ETHERNET
@@ -128,26 +131,33 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     debug("iphdrlen %u",iphdrlen);
 
     struct tcphdr *tcph = (struct tcphdr*)(packet + ETHERNET_SIZE + iphdrlen);
+
     u_char *payload; /* Packet payload */
 
     unsigned short tcphdrlen = 32;
 
-    //struct ssl_st sslhd = (struct ssl_st*)(packet + ETHERNET_SIZE + iphdrlen+tcphdrlen);
 
     payload = (u_char *)(packet + ETHERNET_SIZE + iphdrlen + tcphdrlen); // this is ssl payload
 
+    debug("handshake message type %0x %0x",payload[5], payload[6]);
+    if(payload[5] == HANDSHAKE_MSG) {
+        char* sni = extract_data(payload,127,155); // SNI on 28 Bytes
+        debug("hello: %s",sni);
+    }
+
+    SSL* ssl = SSL_new(ctx);
+
     /* header zatial ale potrebujem aby skor nejaky koniec -> dlzka spojenia, prenos B  */
-    debug("handshake protocol type %0x %x",payload[5], payload[6]);
+    //debug("handshake protocol type %0x %x",payload[5], payload[6]);
     //printf("handshake protocol type %c %c",payload[5], payload[6]);
     //print_packet(payload,6);
-    extract_data(payload,127,143);
-    print_packet(payload,7);
-    print_packet(payload,8);
+    //print_packet(payload,7);
+    //print_packet(payload,8);
 
-    unsigned size_of_packet = pkthdr->len/16;
+    /*unsigned size_of_packet = pkthdr->len/16;
     for (unsigned i = 0; i < size_of_packet+1; i++) {
         print_packet(payload,i);
-    }
+    }*/
 
 }
 
@@ -180,20 +190,19 @@ void print_packet(const u_char* packet, unsigned X) {
     printf("%s\n",ascii_str);
 }
 
-void extract_data(const u_char* packet, unsigned from_B, unsigned to_B) {
-    unsigned size = 1;
-    size = to_B - from_B;
-    char *ascii_str = malloc(to_B-from_B);
+char* extract_data(const u_char* packet, unsigned from_B, unsigned to_B) {
+    char *ascii_str = malloc(to_B-from_B+1);
     //unsigned Y = (X != 0) ? X*16 : 0; // print 0-15, 16-32, 32 - 64 ... B
     for (unsigned i = from_B; i <= to_B; i++) {
         if (no_bytes != 0) {
-            printf("%02X ", (unsigned int) packet[i]);
+            //printf("%02X ", (unsigned int) packet[i]);
             convert_ascii(ascii_str, (unsigned int) packet[i]);
             no_bytes--;
         }
         else //if all packet has been printed, print spaces
             printf("   ");
     }
-    printf("%s\n",ascii_str);
+    //printf("%s\n",ascii_str);
+    return ascii_str;
 }
 
