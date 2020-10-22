@@ -13,8 +13,6 @@
 #include <pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <netinet/if_ether.h>
-#include <netinet/tcp.h>
 #include <netinet/ip.h>
 #include <string.h>
 #include <pcap/pcap.h>
@@ -22,6 +20,7 @@
 #include <stdbool.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include "packet.h"
 
 typedef struct ssl_data {
     struct tm* time;
@@ -37,7 +36,7 @@ typedef struct ssl_data {
 
 #define CHECK_NULL_HANDLER if (handler == NULL) {perror("Null handler"); err_msg(ERR_PCAP,"");}
 /* https://stackoverflow.com/questions/39624745/capture-only-ssl-handshake-with-tcpdump */
-#define ETHERNET_SIZE sizeof(struct ethhdr)
+
 #define SSL_FILTER "tcp[((tcp[12] & 0xf0) >> 2)] = 0x16" // filter only SSL packets with handshake  hello??
 #define HANDSHAKE_MSG 0x01 //starts at 6th B
 #define MAX_TIME 101

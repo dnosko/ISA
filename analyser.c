@@ -9,6 +9,17 @@
 #include "analyser.h"
 
 //TODO <timestamp>,<client ip><client port>,<server ip><SNI>,<bytes>,<packets>,<duration sec>
+// filtrovat vsetky tcp packety. Pride packet. Pozriem ci sa cislo portu nachadza v mojom strome
+/* A) nenachadza sa: pozriem flag tcp packetu ak SYN(0x002) -> uloz cislo portu a pocet=0 a cas do bufferu/stromu */
+/* B) nachadza sa:  pricitaj paket++,skontrolovat ci to je:
+ *                  a)ssl client hello - zobrat info do struktury
+ *                  b)ssl server hello - kontrola ci je verzia podporovana
+ *                                      - nastavit bool ze ok
+ *                  c)packet so ssl, pricitaj dlzku (v hlavicke length),
+ *                 d) tcp packet -> ak client posle FIN (0x011) tak koniec
+ *                               -> inak zahod packet a zober dalsi*/
+
+// spojenia ktore neboli ukoncene ak sigint tak vypisat "-"
 
 static volatile int keepRunning = false;
 
@@ -117,53 +128,24 @@ int set_filter(pcap_t* handler,bpf_u_int32 netmask) {
 
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet) {
 
-    Ssl_data* ssl_datagram = (Ssl_data*)(sizeof(Ssl_data));
-    // convert time
+    Ssl_data* ssl_connection = (Ssl_data*)(sizeof(Ssl_data));
+
     struct tm* lt = localtime(&pkthdr->ts.tv_sec);
-    char time_[MAX_TIME];
-    strftime(time_, MAX_TIME-1, "%X", lt);
+    ssl_connection->time = lt;
+
+    //	IP header -> X + SIZE_ETHERNET
+    struct iphdr *iph = (struct iphdr*)(packet + ETHERNET_SIZE);
+
+    // get port number
+    unsigned short *src_port = (unsigned short *) malloc(sizeof(unsigned short));
+    get_port(packet,iph, src_port);
+    ssl_connection->client_port = *src_port;
+
 
     //printf("%d-%2d-%2d\n%2d:%2d:%2d.%ld", time->tm_year, time->tm_mon, time->tm_mday, time->tm_hour, time->tm_min,
     //                                             time->tm_sec,pkthdr->ts.tv_usec);
 
-    no_bytes = pkthdr->len; // number of bytes of packet
-    debug("header secs: %lu", pkthdr->ts.tv_usec);
-    //	IP header -> X + SIZE_ETHERNET
-    struct iphdr *iph = (struct iphdr*)(packet + ETHERNET_SIZE);
-
-    unsigned X = 20;
-   // print_packet(packet,X);
-
-    unsigned short iphdrlen = iph->ihl*4;
-    debug("iphdrlen %u",iphdrlen);
-
-    struct tcphdr *tcph = (struct tcphdr*)(packet + ETHERNET_SIZE + iphdrlen);
-
-    u_char *payload; /* Packet payload */
-
-    unsigned short tcphdrlen = 32;
-
-
-    payload = (u_char *)(packet + ETHERNET_SIZE + iphdrlen + tcphdrlen); // this is ssl payload
-
-    debug("handshake message type %0x %0x",payload[5], payload[6]);
-    if(payload[5] == HANDSHAKE_MSG) {
-        char* sni = extract_data(payload,127,155); // SNI on 28 Bytes
-        debug("hello: %s",sni);
-    }
-
-    /* header zatial ale potrebujem aby skor nejaky koniec -> dlzka spojenia, prenos B  */
-    //debug("handshake protocol type %0x %x",payload[5], payload[6]);
-    //printf("handshake protocol type %c %c",payload[5], payload[6]);
-    //print_packet(payload,6);
-    //print_packet(payload,7);
-    //print_packet(payload,8);
-
-    /*unsigned size_of_packet = pkthdr->len/16;
-    for (unsigned i = 0; i < size_of_packet+1; i++) {
-        print_packet(payload,i);
-    }*/
-
+    free(src_port);
 }
 
 
