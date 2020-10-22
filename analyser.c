@@ -118,6 +118,13 @@ int set_filter(pcap_t* handler,bpf_u_int32 netmask) {
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet) {
 
     Ssl_data* ssl_datagram = (Ssl_data*)(sizeof(Ssl_data));
+    // convert time
+    struct tm* lt = localtime(&pkthdr->ts.tv_sec);
+    char time_[MAX_TIME];
+    strftime(time_, MAX_TIME-1, "%X", lt);
+
+    //printf("%d-%2d-%2d\n%2d:%2d:%2d.%ld", time->tm_year, time->tm_mon, time->tm_mday, time->tm_hour, time->tm_min,
+    //                                             time->tm_sec,pkthdr->ts.tv_usec);
 
     no_bytes = pkthdr->len; // number of bytes of packet
     debug("header secs: %lu", pkthdr->ts.tv_usec);
@@ -145,8 +152,6 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
         debug("hello: %s",sni);
     }
 
-    SSL* ssl = SSL_new(ctx);
-
     /* header zatial ale potrebujem aby skor nejaky koniec -> dlzka spojenia, prenos B  */
     //debug("handshake protocol type %0x %x",payload[5], payload[6]);
     //printf("handshake protocol type %c %c",payload[5], payload[6]);
@@ -160,6 +165,7 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     }*/
 
 }
+
 
 void convert_ascii(char *ascii_str, unsigned int val) {
     char ascii_val[16] = "";
