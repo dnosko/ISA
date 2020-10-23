@@ -28,19 +28,20 @@
 /* https://stackoverflow.com/questions/39624745/capture-only-ssl-handshake-with-tcpdump */
 
 #define SSL_FILTER "tcp[((tcp[12] & 0xf0) >> 2)] = 0x16" // filter only SSL packets with handshake  hello??
+#define TCP_FILTER "tcp"
 #define HANDSHAKE_MSG 0x01 //starts at 6th B
 #define MAX_TIME 101
 #define SSL_PORT 443
 
 typedef struct ssl_data {
-    struct tm* time;
+    struct timeval* time; //start //TODO upravit na tm strukturu atd
     struct ip client_ip;
     unsigned client_port;
     struct ip server_ip;
     char* SNI;
     unsigned size_in_B;
     unsigned packets;
-    unsigned sec;
+    unsigned long duration; //last - first packet
 } Ssl_data;
 
 Ssl_data* buffer;
@@ -57,8 +58,9 @@ int set_filter(pcap_t* handler,bpf_u_int32 netmask);
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet);
 /* inserts data in buffer */
 int append_item(Ssl_data data);
-/* looks for item in buffer based on port, returns NULL if buffer doesn't contain the item */
-void find_item(unsigned short port, Ssl_data* item);
+/* looks for item in buffer based on port, returns NULL if buffer doesn't contain the item, returns position if found the item and -1 if not */
+int find_item(unsigned short port, Ssl_data* item);
+int delete_item(unsigned short port);
 // converts in_time from seconds to real time
 void get_timestamp(struct tm* time,struct timeval in_time);
 void check_protocol(const u_char *packet,  struct iphdr *iph, unsigned short *src_port,
