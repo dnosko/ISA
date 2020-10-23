@@ -1,22 +1,21 @@
 CC = gcc
-CFLAGS= -std=c99 -Wall -Wextra -Wno-missing-field-initializers -D_DEFAULT_SOURCE
-LDFLAGS= -lpcap #-I{usr/include/pcap.h}
-LDIR =../lib
-
-HEADERF := $(wildcard *.h)
-SOURCEF := $(wildcard *.c)
-OBJECTF := $(patsubst %.c, %.o, $(SOURCEF))
+CFLAGS = -Wall -Wextra -Ilib/ -g
+PCAPFLAG = -lpcap
 
 all: sslsniff
 
-ssl-sniff: $(SOURCEF) $(HEADERF) $(OBJECTF)
-	gcc $(CFLAGS) -o ssl-sniff $(OBJECTF) $(LDFLAGS)
+bin/packet.o: src/packet.c src/packet.h src/packet.h
+	$(CC) src/packet.c $(CFLAGS) -c -o bin/packet.o $(PCAPFLAG)
 
-%.o: %.c %.h
-	gcc -c $(CFLAGS) $< -o $@ $(LDFLAGS)
+bin/analyser.o: src/analyser.c src/analyser.h src/packet.h src/error.h
+	$(CC) src/analyser.c $(CFLAGS) -c -o bin/analyser.o $(PCAPFLAG)
+
+bin/sslsniff.o: src/sslsniff.c src/analyser.h src/packet.h src/error.h
+	$(CC) src/sslsniff.c $(CFLAGS) -c -o bin/sslsniff.o $(PCAPFLAG)
+
+sslsniff: bin/sslsniff.o bin/analyser.o bin/packet.o
+	$(CC) bin/sslsniff.o bin/analyser.o bin/packet.o $(CFLAGS) -o sslsniff $(PCAPFLAG)
+
 
 clean:
-	rm -f ssl-sniff $(OBJECTF)
-
-cleano:
-	rm -f $(OBJECTF)
+	rm bin/* sslsniff

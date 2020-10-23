@@ -18,7 +18,7 @@
  *                  b)ssl server hello - kontrola ci je verzia podporovana
  *                                      - nastavit bool ze ok
  *                  c)packet so ssl, pricitaj dlzku (v hlavicke length),
- *                 d) tcp packet -> ak client posle FIN (0x011) tak koniec
+ *                 d) tcp packet -> ak server posle FIN (0x011) tak koniec
  *                               -> inak zahod packet a zober dalsi*/
 
 // spojenia ktore neboli ukoncene ak sigint tak vypisat "-"
@@ -143,21 +143,32 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     unsigned short iphdrlen = iph->ihl*4;
     struct tcphdr *tcp=(struct tcphdr*)(packet + iphdrlen + ETHERNET_SIZE);
 
-    // get port number
+    // get ports numbers
     unsigned short *src_port = (unsigned short *) malloc(sizeof(unsigned short));
-    get_port(packet,tcp, src_port);
-
-    // check if port is already in use
-    find_item(*src_port,&ssl_connection);
-    // port isn't in the buffer
-    if (&(ssl_connection) == NULL) {
-        // check if flag is SYN
-        ssl_connection.client_port = *src_port;
-        ssl_connection.time = localtime((const time_t *) &pkthdr->ts);
-        append_item(ssl_connection);
+    get_port(packet,tcp, src_port); // potrebujem obidva porty skontrolovat vzdy ten co nie je 443
+    if (*src_port != SSL_PORT){
+        if (!strcmp(check_flag(tcp),"SYN")) { // add new connection to buffer
+            ssl_connection.client_port = *src_port;
+            ssl_connection.time = localtime((const time_t *) &pkthdr->ts);
+            ssl_connection.packets = 1;
+            append_item(ssl_connection);
+        }
+        else { // ACK or FIN from client -> increment packets and bytes
+            find_item(*src_port,&ssl_connection);
+            // if port isn't in buffer dump packet
+            if (&(ssl_connection) != NULL) {
+                ssl_connection.packets++;
+                //TODO increment bytes zo ssl hlavicky
+            }
+        }
     }
-    else { // port is in buffer already
-
+    else {
+        unsigned short client_port = ntohs(tcp->dest);
+        debug("clientport %d",client_port);
+        // get destination port, check if its in buffer ak nie tak zahod ak je tak:
+        // check if flag is FIN or not
+        // ak FIN tak vypocitat duration, vypisat a zmazat z bufferu
+        // ak nie FIN tak iba pripocitaj
     }
 
 

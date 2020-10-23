@@ -30,6 +30,7 @@
 #define SSL_FILTER "tcp[((tcp[12] & 0xf0) >> 2)] = 0x16" // filter only SSL packets with handshake  hello??
 #define HANDSHAKE_MSG 0x01 //starts at 6th B
 #define MAX_TIME 101
+#define SSL_PORT 443
 
 typedef struct ssl_data {
     struct tm* time;
@@ -38,7 +39,7 @@ typedef struct ssl_data {
     struct ip server_ip;
     char* SNI;
     unsigned size_in_B;
-    unsigned number_of_packets;
+    unsigned packets;
     unsigned sec;
 } Ssl_data;
 
