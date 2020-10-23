@@ -8,6 +8,8 @@
 #include <openssl/ssl.h>
 #include "analyser.h"
 
+// SSL vzdy port 443
+// verziu ssl urcuje server
 //TODO <timestamp>,<client ip><client port>,<server ip><SNI>,<bytes>,<packets>,<duration sec>
 // filtrovat vsetky tcp packety. Pride packet. Pozriem ci sa cislo portu nachadza v mojom strome
 /* A) nenachadza sa: pozriem flag tcp packetu ak SYN(0x002) -> uloz cislo portu a pocet=0 a cas do bufferu/stromu */
@@ -35,6 +37,12 @@ int open_handler(char* interface, char* pcap_file) {
     int return_code;
 
     //signal(SIGINT, intHandler);
+
+    //init buffer
+    buffer = (Ssl_data*)malloc(sizeof(Ssl_data));
+    if (!buffer){
+        err_msg(ERR_MEMORY, "Allocation failed.");
+    }
 
     if(pcap_file != NULL){
         //open file
@@ -128,18 +136,29 @@ int set_filter(pcap_t* handler,bpf_u_int32 netmask) {
 
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet) {
 
-    Ssl_data* ssl_connection = (Ssl_data*)(sizeof(Ssl_data));
-
-    struct tm* lt = localtime(&pkthdr->ts.tv_sec);
-    ssl_connection->time = lt;
+    Ssl_data ssl_connection;
 
     //	IP header -> X + SIZE_ETHERNET
     struct iphdr *iph = (struct iphdr*)(packet + ETHERNET_SIZE);
+    unsigned short iphdrlen = iph->ihl*4;
+    struct tcphdr *tcp=(struct tcphdr*)(packet + iphdrlen + ETHERNET_SIZE);
 
     // get port number
     unsigned short *src_port = (unsigned short *) malloc(sizeof(unsigned short));
-    get_port(packet,iph, src_port);
-    ssl_connection->client_port = *src_port;
+    get_port(packet,tcp, src_port);
+
+    // check if port is already in use
+    find_item(*src_port,&ssl_connection);
+    // port isn't in the buffer
+    if (&(ssl_connection) == NULL) {
+        // check if flag is SYN
+        ssl_connection.client_port = *src_port;
+        ssl_connection.time = localtime((const time_t *) &pkthdr->ts);
+        append_item(ssl_connection);
+    }
+    else { // port is in buffer already
+
+    }
 
 
     //printf("%d-%2d-%2d\n%2d:%2d:%2d.%ld", time->tm_year, time->tm_mon, time->tm_mday, time->tm_hour, time->tm_min,
@@ -148,6 +167,28 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     free(src_port);
 }
 
+int append_item(Ssl_data data){
+    buffer_len++;
+    debug("buffer_len %i",buffer_len);
+    buffer = realloc(buffer, buffer_len * sizeof(Ssl_data));
+    if (!buffer) {
+        err_msg(ERR_MEMORY,"Error while reallocating memory");
+    }
+
+    buffer[buffer_len-1] = data;
+    return OK;
+}
+
+void find_item(unsigned short port, Ssl_data* item){
+    for (unsigned i = 0; i < buffer_len; i++) {
+        Ssl_data data = buffer[i];
+        if (port == data.client_port){
+            item = &data;
+            return;
+        }
+    }
+    item = NULL;
+}
 
 void convert_ascii(char *ascii_str, unsigned int val) {
     char ascii_val[16] = "";

@@ -22,6 +22,15 @@
 #include <openssl/err.h>
 #include "packet.h"
 
+
+
+#define CHECK_NULL_HANDLER if (handler == NULL) {perror("Null handler"); err_msg(ERR_PCAP,"");}
+/* https://stackoverflow.com/questions/39624745/capture-only-ssl-handshake-with-tcpdump */
+
+#define SSL_FILTER "tcp[((tcp[12] & 0xf0) >> 2)] = 0x16" // filter only SSL packets with handshake  hello??
+#define HANDSHAKE_MSG 0x01 //starts at 6th B
+#define MAX_TIME 101
+
 typedef struct ssl_data {
     struct tm* time;
     struct ip client_ip;
@@ -33,13 +42,9 @@ typedef struct ssl_data {
     unsigned sec;
 } Ssl_data;
 
+Ssl_data* buffer;
+unsigned buffer_len;
 
-#define CHECK_NULL_HANDLER if (handler == NULL) {perror("Null handler"); err_msg(ERR_PCAP,"");}
-/* https://stackoverflow.com/questions/39624745/capture-only-ssl-handshake-with-tcpdump */
-
-#define SSL_FILTER "tcp[((tcp[12] & 0xf0) >> 2)] = 0x16" // filter only SSL packets with handshake  hello??
-#define HANDSHAKE_MSG 0x01 //starts at 6th B
-#define MAX_TIME 101
 
 void print_packet(const u_char* packet, unsigned X);
 
@@ -49,12 +54,14 @@ int analyse_file_packets(pcap_t* handler);
 int analyse_interface_packets(pcap_t* handler,bpf_u_int32 pNet);
 int set_filter(pcap_t* handler,bpf_u_int32 netmask);
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet);
+/* inserts data in buffer */
+int append_item(Ssl_data data);
+/* looks for item in buffer based on port, returns NULL if buffer doesn't contain the item */
+void find_item(unsigned short port, Ssl_data* item);
 // converts in_time from seconds to real time
 void get_timestamp(struct tm* time,struct timeval in_time);
 void check_protocol(const u_char *packet,  struct iphdr *iph, unsigned short *src_port,
                     unsigned short *dst_port);
-void get_port(const u_char *packet,struct iphdr *iph, char *type, unsigned short *src_port,
-              unsigned short *dst_port);
 void get_src_dst_addr(char *src, char *dst, struct iphdr *iph);
 char* extract_data(const u_char* packet, unsigned from_B, unsigned to_B);
 

@@ -1,3 +1,0 @@
-/home/dasa/Dokumenty/school/ISA/isa/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/dasa/Dokumenty/school/ISA/isa/cmake-build-debug/CMakeFiles/isa.dir
-/home/dasa/Dokumenty/school/ISA/isa/cmake-build-debug/CMakeFiles/edit_cache.dir

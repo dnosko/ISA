@@ -1,6 +1,8 @@
-//
-// Created by dasa on 22. 10. 2020.
-//
+/*****************************************
+ *              ISA 2020
+ *        xnosko05 - Daša Nosková
+ *        Monitoring SSL spojenia
+ ****************************************/
 
 #ifndef SSLSNIFF_FORMAT_H
 #define SSLSNIFF_FORMAT_H

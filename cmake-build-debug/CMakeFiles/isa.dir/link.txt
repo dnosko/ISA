@@ -1,1 +1,0 @@
-/usr/bin/cc -g   CMakeFiles/isa.dir/sslsniff.c.o  -o isa 
