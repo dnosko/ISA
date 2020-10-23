@@ -142,7 +142,7 @@ int set_filter(pcap_t* handler,bpf_u_int32 netmask) {
 
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet) {
 
-    Ssl_data ssl_connection;
+    Ssl_data* ssl_connection = malloc(sizeof(Ssl_data));
 
     //	IP header -> X + SIZE_ETHERNET
     struct iphdr *iph = (struct iphdr*)(packet + ETHERNET_SIZE);
@@ -155,19 +155,18 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     if (*src_port != SSL_PORT){
         if (!strcmp(check_flag(tcp),"SYN")) { // add new connection to buffer
             debug("adding port %i to buffer",*src_port);
-            ssl_connection.client_port = *src_port;
-            ssl_connection.time = &pkthdr->ts;
-            debug("time %lu",ssl_connection.time->tv_sec);
-            ssl_connection.packets = 1;
-            append_item(ssl_connection);
+            ssl_connection->client_port = *src_port;
+            ssl_connection->time = &pkthdr->ts;
+            debug("time %lu",ssl_connection->time->tv_sec);
+            ssl_connection->packets = 1;
+            append_item(*ssl_connection);
         }
         else { // ACK or FIN from client -> increment packets and bytes
-            debug("hey ho %d",*src_port);
             int pos = find_item(*src_port,&ssl_connection);
             // if port isn't in buffer dump packet
             if (pos != -1) {
-                debug("port %i je v bufferi",*src_port);
-                ssl_connection.packets++;
+                ssl_connection->packets = ssl_connection->packets+1;
+                debug("A: %d: %d",ssl_connection->client_port,ssl_connection->packets);
                 //TODO increment bytes zo ssl hlavicky
             }
         }
@@ -176,32 +175,32 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
         unsigned short client_port = ntohs(tcp->dest);
         debug("clientport %d soucerport %d",client_port, *src_port);
         // get destination port, check if its in buffer ak nie tak zahod ak je tak:
-        debug("hello ther");
         int pos = find_item(client_port,&ssl_connection);
-        if (pos != -1) {
-            debug("port %i je v bufferi",client_port);
-            ssl_connection.packets++;
+        if (pos != -1) { // ak je -1 tak zahod -> nie je v bufferi
+            ssl_connection->packets = ssl_connection->packets+1;
+            debug("B: %d: %d",ssl_connection->client_port,ssl_connection->packets);
             //TODO increment bytes zo ssl hlavicky
-        }
         // check if flag is FIN or not
         if (!strcmp(check_flag(tcp),"FIN")) {
             //vypocitat duration, vypisat a zmazat z bufferu
-            long duration = (&pkthdr->ts.tv_sec - ssl_connection.time->tv_sec);
-            debug("connection duration %lu sec",duration);
+            debug("#### DELETE.%lu..%lu..packets %d",pkthdr->ts.tv_sec,ssl_connection->time->tv_sec,ssl_connection->packets);
+            //const long* duration = pkthdr->ts.tv_sec - ssl_connection.time->tv_sec;
+            //debug("connection duration %lu sec",*duration);
             //print_packet();
             if ( delete_item(client_port)!= OK) exit(-1); //TODO clean memory leaks
         }
         else { // ak nie FIN tak iba pripocitaj
-            ssl_connection.packets++;
-            debug("not fin %d",ssl_connection.packets);
+            ssl_connection->packets = ssl_connection->packets+1;
+            debug("not fin: %d: %d",ssl_connection->client_port,ssl_connection->packets);
             //TODO increment bytes zo ssl hlavicky
         }
+        }
     }
-
 
     //printf("%d-%2d-%2d\n%2d:%2d:%2d.%ld", time->tm_year, time->tm_mon, time->tm_mday, time->tm_hour, time->tm_min,
     //                                             time->tm_sec,pkthdr->ts.tv_usec);
     free(src_port);
+    free(ssl_connection);
 }
 
 int append_item(Ssl_data data){
@@ -218,13 +217,13 @@ int append_item(Ssl_data data){
     return OK;
 }
 
-int find_item(unsigned short port, Ssl_data* item){
+int find_item(unsigned short port, Ssl_data** item){
     debug("buffer_len %d",buffer_len);
     for (unsigned i = 0; i < buffer_len; i++) {
         debug("ups %d",i);
         debug("buffer port %d",buffer[i].client_port);
         if (port == buffer[i].client_port){
-            *item = buffer[i];
+            **item = buffer[i];
             return i;
         }
     }
@@ -234,7 +233,7 @@ int find_item(unsigned short port, Ssl_data* item){
 int delete_item(unsigned short port){
     Ssl_data *item = malloc(sizeof(Ssl_data));
     debug("deleting.. %d buffer_len %d",port,buffer_len);
-    int position = find_item(port, item);
+    int position = find_item(port, &item);
     debug("position %d",position);
     if (position != -1) {
         Ssl_data* temp = malloc((buffer_len - 1) * sizeof(Ssl_data)); // allocate an array with a size 1 less than the current one
