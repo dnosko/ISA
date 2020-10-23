@@ -31,7 +31,6 @@
 #define TCP_FILTER "tcp"
 #define HANDSHAKE_MSG 0x01 //starts at 6th B
 #define MAX_TIME 101
-#define SSL_PORT 443
 
 typedef struct ssl_data {
     struct timeval* time; //start //TODO upravit na tm strukturu atd
@@ -54,12 +53,13 @@ void convert_ascii(char *ascii_str, unsigned int val);
 int open_handler(char* interface, char* pcap_file);
 int analyse_file_packets(pcap_t* handler);
 int analyse_interface_packets(pcap_t* handler,bpf_u_int32 pNet);
+int ppcap_loop(pcap_t* handler);
 int set_filter(pcap_t* handler,bpf_u_int32 netmask);
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet);
 /* inserts data in buffer */
 int append_item(Ssl_data data);
 /* looks for item in buffer based on port, returns NULL if buffer doesn't contain the item, returns position if found the item and -1 if not */
-int find_item(unsigned short port, Ssl_data** item);
+int find_item(unsigned short port, Ssl_data* item);
 int delete_item(unsigned short port);
 // converts in_time from seconds to real time
 void get_timestamp(struct tm* time,struct timeval in_time);

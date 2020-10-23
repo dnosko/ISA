@@ -81,41 +81,27 @@ int analyse_file_packets(pcap_t* handler){
     if (set_filter(handler,PCAP_NETMASK_UNKNOWN) == ERR_PCAP)
         return ERR_PCAP;
 
-    struct pcap_pkthdr *header;
-    const u_char *packet;
-
-    /*while (pcap_next_ex(handler,&header,&packet) >= 0) {
-        debug("header secs: %lu", header->ts.tv_usec);
-        //debug("packet %c", packet);
-    }*/
-    int return_code = pcap_loop(handler,-1, process_packet, NULL);
-    if (return_code == PCAP_ERROR || return_code == PCAP_ERROR_BREAK ) {
-        debug("here");
-        //pcap_close(handler);
-        return return_code;
-    }
-
-    return OK;
+    return ppcap_loop(handler);
 }
 
 int analyse_interface_packets(pcap_t* handler,bpf_u_int32 pNet) {
-
 
     if (set_filter(handler,pNet) == ERR_PCAP){
         return ERR_PCAP;
     }
 
-    int infinite_loop = -1;
-    int return_code;
+    return ppcap_loop(handler);
+}
 
-    return_code = pcap_loop(handler,infinite_loop, process_packet, NULL);
+int ppcap_loop(pcap_t* handler){
+    int infinite_loop = -1;
+
+    int return_code = pcap_loop(handler,infinite_loop, process_packet, NULL);
     if (return_code == PCAP_ERROR || return_code == PCAP_ERROR_BREAK ) {
         debug("here");
         //pcap_close(handler);
         return return_code;
     }
-
-    //pcap_close(handler); //close session
     return OK;
 }
 
@@ -139,7 +125,6 @@ int set_filter(pcap_t* handler,bpf_u_int32 netmask) {
 
     return OK;
 }
-
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet) {
 
     Ssl_data* ssl_connection = malloc(sizeof(Ssl_data));
@@ -162,7 +147,7 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
             append_item(*ssl_connection);
         }
         else { // ACK or FIN from client -> increment packets and bytes
-            int pos = find_item(*src_port,&ssl_connection);
+            int pos = find_item(*src_port,ssl_connection);
             // if port isn't in buffer dump packet
             if (pos != -1) {
                 ssl_connection->packets = ssl_connection->packets+1;
@@ -175,25 +160,25 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
         unsigned short client_port = ntohs(tcp->dest);
         debug("clientport %d soucerport %d",client_port, *src_port);
         // get destination port, check if its in buffer ak nie tak zahod ak je tak:
-        int pos = find_item(client_port,&ssl_connection);
+        int pos = find_item(client_port,ssl_connection);
         if (pos != -1) { // ak je -1 tak zahod -> nie je v bufferi
             ssl_connection->packets = ssl_connection->packets+1;
             debug("B: %d: %d",ssl_connection->client_port,ssl_connection->packets);
             //TODO increment bytes zo ssl hlavicky
-        // check if flag is FIN or not
-        if (!strcmp(check_flag(tcp),"FIN")) {
-            //vypocitat duration, vypisat a zmazat z bufferu
-            debug("#### DELETE.%lu..%lu..packets %d",pkthdr->ts.tv_sec,ssl_connection->time->tv_sec,ssl_connection->packets);
-            //const long* duration = pkthdr->ts.tv_sec - ssl_connection.time->tv_sec;
-            //debug("connection duration %lu sec",*duration);
-            //print_packet();
-            if ( delete_item(client_port)!= OK) exit(-1); //TODO clean memory leaks
-        }
-        else { // ak nie FIN tak iba pripocitaj
-            ssl_connection->packets = ssl_connection->packets+1;
-            debug("not fin: %d: %d",ssl_connection->client_port,ssl_connection->packets);
-            //TODO increment bytes zo ssl hlavicky
-        }
+            // check if flag is FIN or not
+            if (!strcmp(check_flag(tcp),"FIN")) {
+                //vypocitat duration, vypisat a zmazat z bufferu
+                debug("#### DELETE.%lu..%lu..packets %d",pkthdr->ts.tv_sec,ssl_connection->time->tv_sec,ssl_connection->packets);
+                //const long* duration = pkthdr->ts.tv_sec - ssl_connection.time->tv_sec;
+                //debug("connection duration %lu sec",*duration);
+                //print_packet();
+                if ( delete_item(client_port)!= OK) exit(-1); //TODO clean memory leaks
+            }
+            else { // ak nie FIN tak iba pripocitaj
+                ssl_connection->packets = ssl_connection->packets+1;
+                debug("not fin: %d: %d",ssl_connection->client_port,ssl_connection->packets);
+                //TODO increment bytes zo ssl hlavicky
+            }
         }
     }
 
@@ -217,13 +202,13 @@ int append_item(Ssl_data data){
     return OK;
 }
 
-int find_item(unsigned short port, Ssl_data** item){
+int find_item(unsigned short port, Ssl_data* item){
     debug("buffer_len %d",buffer_len);
     for (unsigned i = 0; i < buffer_len; i++) {
         debug("ups %d",i);
         debug("buffer port %d",buffer[i].client_port);
         if (port == buffer[i].client_port){
-            **item = buffer[i];
+            *item = buffer[i];
             return i;
         }
     }
@@ -233,7 +218,7 @@ int find_item(unsigned short port, Ssl_data** item){
 int delete_item(unsigned short port){
     Ssl_data *item = malloc(sizeof(Ssl_data));
     debug("deleting.. %d buffer_len %d",port,buffer_len);
-    int position = find_item(port, &item);
+    int position = find_item(port, item);
     debug("position %d",position);
     if (position != -1) {
         Ssl_data* temp = malloc((buffer_len - 1) * sizeof(Ssl_data)); // allocate an array with a size 1 less than the current one
@@ -298,4 +283,5 @@ char* extract_data(const u_char* packet, unsigned from_B, unsigned to_B) {
     //printf("%s\n",ascii_str);
     return ascii_str;
 }
+
 

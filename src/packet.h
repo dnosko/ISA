@@ -13,9 +13,10 @@
 #define SSLSNIFF_PACKET_H
 
 #define ETHERNET_SIZE sizeof(struct ethhdr)
+#define SSL_PORT 443
 
 
-void get_port(const u_char *packet,struct tcphdr *tcph,unsigned short *src_port);
+void get_port(const u_char *packet, struct tcphdr *tcph, unsigned short* src_port);
 /* returns SYN if SYN flag is set and ACK not, returns FIN if FIN flag is set (client side) and empty string if other*/
 char* check_flag(struct tcphdr *tcph);
 
