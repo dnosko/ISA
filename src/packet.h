@@ -27,6 +27,6 @@ char* check_flag(struct tcphdr *tcph);
 char* get_ip_addr(struct iphdr *iph, char* type);
 /************************************************/
 void convert_ascii(char *ascii_str, unsigned int val);
-void print_packet(const u_char* packet, unsigned X);
-char* extract_data(const u_char* packet, unsigned from_B, unsigned to_B);
+void print_packet(const u_char* packet, unsigned X, int no_bytes);
+char* extract_data(const u_char* packet, unsigned from_B, unsigned to_B,int no_bytes);
 #endif //SSLSNIFF_PACKET_H

@@ -7,7 +7,6 @@
 #include "packet.h"
 #include "error.h"
 
-int no_bytes;
 
 unsigned short get_port(struct tcphdr *tcph,char* type){
     if (!strcmp("src",type))
@@ -61,7 +60,7 @@ void convert_ascii(char *ascii_str, unsigned int val) {
     }
 }
 
-void print_packet(const u_char* packet, unsigned X) {
+void print_packet(const u_char* packet, unsigned X, int no_bytes) {
 
     printf("0x%.3d0: ",X);
     char ascii_str[16] = "";
@@ -78,18 +77,19 @@ void print_packet(const u_char* packet, unsigned X) {
     printf("%s\n",ascii_str);
 }
 
-char* extract_data(const u_char* packet, unsigned from_B, unsigned to_B) {
-    char *ascii_str = malloc(to_B-from_B+1);
+char* extract_data(const u_char* packet, unsigned from_B, unsigned to_B, int no_bytes) {
+    char* ascii_str = (char*) malloc(to_B-from_B+1);
     //unsigned Y = (X != 0) ? X*16 : 0; // print 0-15, 16-32, 32 - 64 ... B
     for (unsigned i = from_B; i <= to_B; i++) {
         if (no_bytes != 0) {
             //printf("%02X ", (unsigned int) packet[i]);
             convert_ascii(ascii_str, (unsigned int) packet[i]);
+            printf("byte: %d: %s\n",no_bytes,ascii_str);
             no_bytes--;
         }
         else //if all packet has been printed, print spaces
             printf("   ");
     }
-    //printf("%s\n",ascii_str);
+    printf("%s\n",ascii_str);
     return ascii_str;
 }

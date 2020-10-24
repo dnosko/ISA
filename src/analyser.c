@@ -126,6 +126,9 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     struct iphdr* iph = (struct iphdr*)(packet + ETHERNET_SIZE);
     unsigned short iphdrlen = iph->ihl*4;
     struct tcphdr* tcp = (struct tcphdr*)(packet + iphdrlen + ETHERNET_SIZE);
+    u_char *payload; /* Packet payload */
+    unsigned short tcphdrlen = 32;
+    payload = (u_char *)(packet + ETHERNET_SIZE + iphdrlen + tcphdrlen); // this is ssl payload
 
     unsigned short src_port = get_port(tcp, "src"); // potrebujem obidva porty skontrolovat vzdy ten co nie je 443
     if (src_port != SSL_PORT){
@@ -134,6 +137,11 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
         }
         else {
             increment_count(src_port);
+            //debug("handshake message type %0x %0x\n",payload[5], payload[6]);
+            if(payload[5] == HANDSHAKE_MSG) {
+                char* sni = extract_data(payload,153,167,pkthdr->len); // SNI on 28 Bytes
+                debug("hello: %s\n",sni);
+            }
         }
     }
     else { // source je SSL
