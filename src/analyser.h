@@ -57,9 +57,9 @@ int ppcap_loop(pcap_t* handler);
 int set_filter(pcap_t* handler,bpf_u_int32 netmask);
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet);
 /* inserts data in buffer */
-int append_item(Ssl_data data);
+int append_item(Ssl_data* data);
 /* looks for item in buffer based on port, returns NULL if buffer doesn't contain the item, returns position if found the item and -1 if not */
-int find_item(unsigned short port, Ssl_data* item);
+int find_item(unsigned short port);
 int delete_item(unsigned short port);
 // converts in_time from seconds to real time
 void get_timestamp(struct tm* time,struct timeval in_time);
