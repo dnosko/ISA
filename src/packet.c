@@ -49,14 +49,17 @@ char* get_ip_addr(struct iphdr *iph, char* type) {
 
 /******************************FORMAT******************************************************/
 void convert_ascii(char *ascii_str, unsigned int val) {
-    char ascii_val[16] = "";
+    char ascii_val[32] = "";
     unsigned int decimal = val; //decimal
     if (32 <= decimal && decimal < 127) { //printable chars
         sprintf(ascii_val,"%c",val);
+        printf("ascii_val %s   ",ascii_val);
+        printf("val %c   ",val);
         strcat(ascii_str,ascii_val);
+        printf("ascii_str %s   ",ascii_str);
     }
-    else { // non-printable values are replaced by a dot
-        strcat(ascii_str,".");
+    else { // non printable ascii, end of sni
+        return;
     }
 }
 
@@ -78,14 +81,15 @@ void print_packet(const u_char* packet, unsigned X, int no_bytes) {
 }
 
 char* extract_data(const u_char* packet, unsigned from_B, unsigned to_B, int no_bytes) {
-    char* ascii_str = (char*) malloc(to_B-from_B+1);
+    char* ascii_str = (char*) malloc(sizeof(char)*(to_B-from_B+1));
     //unsigned Y = (X != 0) ? X*16 : 0; // print 0-15, 16-32, 32 - 64 ... B
+    int Bytes = to_B-from_B;
     for (unsigned i = from_B; i <= to_B; i++) {
-        if (no_bytes != 0) {
+        if (Bytes != 0) {
             //printf("%02X ", (unsigned int) packet[i]);
             convert_ascii(ascii_str, (unsigned int) packet[i]);
             printf("byte: %d: %s\n",no_bytes,ascii_str);
-            no_bytes--;
+            Bytes--;
         }
         else //if all packet has been printed, print spaces
             printf("   ");

@@ -137,9 +137,9 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
         }
         else {
             increment_count(src_port);
-            //debug("handshake message type %0x %0x\n",payload[5], payload[6]);
             if(payload[5] == HANDSHAKE_MSG) {
-                char* sni = extract_data(payload,153,167,pkthdr->len); // SNI on 28 Bytes
+                printf("handshake message type %0x %0x\n",payload[5], payload[6]);
+                char* sni = extract_data(payload,153,181,pkthdr->len); // SNI on 28 Bytes
                 debug("hello: %s\n",sni);
             }
         }
