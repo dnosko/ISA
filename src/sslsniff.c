@@ -4,11 +4,7 @@
  *        Monitoring SSL spojenia
  ****************************************/
 
-
-#include <getopt.h>
 #include "sslsniff.h"
-#include "error.h"
-#include "analyser.h"
 
 
 int main(int argc, char **argv) {
@@ -53,7 +49,8 @@ int parse_arg(int argc, char **argv, char** interface, char** in_file){
             case ':':
                 err_msg(ERR_ARG,"Option needs value.");
             default:
-                err_msg(ERR_ARG,"Unknown option: %c", optopt);
+                //err_msg(ERR_ARG,"Unknown option: %c", optopt);
+                break;
         }
 
     }

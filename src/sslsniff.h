@@ -4,13 +4,11 @@
  *        Monitoring SSL spojenia
  ****************************************/
 
-#include <stdio.h>
 #include <ctype.h>
-#include <stdlib.h>
 #include <argp.h>
-#include <string.h>
-#include <stdbool.h>
-
+#include <getopt.h>
+#include "error.h"
+#include "analyser.h"
 
 
 int parse_arg(int argc, char **argv, char** interface, char** in_file);

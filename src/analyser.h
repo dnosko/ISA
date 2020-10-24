@@ -8,18 +8,18 @@
 #define ISA_ANALYSER_H
 
 #include <bits/types/FILE.h>
-#include "error.h"
 #include <pcap/pcap.h>
 #include <pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <netinet/ip.h>
 #include <pcap/pcap.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <openssl/ssl.h>
 #include "packet.h"
+#include "error.h"
 
 
 
@@ -33,9 +33,9 @@
 
 typedef struct ssl_data {
     struct timeval* time; //start //TODO upravit na tm strukturu atd
-    struct ip client_ip;
+    char* client_ip; //struct ip client_ip;
     unsigned client_port;
-    struct ip server_ip;
+    char* server_ip;
     char* SNI;
     unsigned size_in_B;
     unsigned packets;
@@ -46,7 +46,7 @@ Ssl_data* buffer;
 unsigned buffer_len;
 
 
-void print_packet(const u_char* packet, unsigned X);
+//void print_packet(const u_char* packet, unsigned X);
 
 void convert_ascii(char *ascii_str, unsigned int val);
 int open_handler(char* interface, char* pcap_file);
@@ -55,12 +55,15 @@ int analyse_interface_packets(pcap_t* handler,bpf_u_int32 pNet);
 int ppcap_loop(pcap_t* handler);
 int set_filter(pcap_t* handler,bpf_u_int32 netmask);
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet);
+void init_item(unsigned short client_port,const struct pcap_pkthdr* pkthdr,struct iphdr *iph);
 /* inserts data in buffer */
 int append_item(Ssl_data* data);
 /* looks for item in buffer based on port, returns NULL if buffer doesn't contain the item, returns position if found the item and -1 if not */
 int find_item(unsigned short port);
 int delete_item(unsigned short port);
 void increment_count(unsigned short port);
+/* prints connection */
+void print_conn(Ssl_data data);
 // converts in_time from seconds to real time
 void get_timestamp(struct tm* time,struct timeval in_time);
 void check_protocol(const u_char *packet,  struct iphdr *iph, unsigned short *src_port,

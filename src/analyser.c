@@ -4,8 +4,6 @@
  *        Monitoring SSL spojenia
  ****************************************/
 
-#include <zconf.h>
-#include <openssl/ssl.h>
 #include "analyser.h"
 
 // SSL vzdy port 443
@@ -127,23 +125,17 @@ int set_filter(pcap_t* handler,bpf_u_int32 netmask) {
 }
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet) {
 
-    Ssl_data ssl_connection;// = (Ssl_data*) malloc(sizeof(Ssl_data));
-
+    debug("hi");
     //	IP header -> X + SIZE_ETHERNET
     struct iphdr *iph = (struct iphdr*)(packet + ETHERNET_SIZE);
     unsigned short iphdrlen = iph->ihl*4;
-    struct tcphdr *tcp=(struct tcphdr*)(packet + iphdrlen + ETHERNET_SIZE);
+    struct tcphdr *tcp = (struct tcphdr*)(packet + iphdrlen + ETHERNET_SIZE);
 
     unsigned short src_port = get_port(tcp, "src"); // potrebujem obidva porty skontrolovat vzdy ten co nie je 443
     if (src_port != SSL_PORT){
         if (!strcmp(check_flag(tcp),"SYN")) { // add new connection to buffer
-            debug("adding port %i to buffer",src_port);
-            ssl_connection.client_port = src_port;
-            ssl_connection.time->tv_sec = pkthdr->ts.tv_sec;
-            ssl_connection.time->tv_usec = pkthdr->ts.tv_usec;
-            debug("time %lu",ssl_connection.time->tv_sec);
-            ssl_connection.packets = 1;
-            append_item(&ssl_connection);
+            init_item(src_port,pkthdr,iph);
+            debug("hoo");
         }
         else {
             increment_count(src_port);
@@ -154,19 +146,33 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
         debug("clientport %d soucerport %d",client_port, src_port);
         // get destination port, check if its in buffer ak nie tak zahod ak je tak:
         int pos = find_item(client_port);
+        debug("ho");
         increment_count(client_port);
+        debug("yo");
         if (!strcmp(check_flag(tcp),"FIN") && pos != -1) {
             //vypocitat duration, vypisat a zmazat z bufferu
-            debug("#### DELETE.%lu..%lu..packets %d",ssl_connection.time->tv_sec,buffer[pos].time->tv_sec,buffer[pos].packets);
-            long duration = pkthdr->ts.tv_sec - buffer[pos].time->tv_sec;
-            debug("connection duration %lu sec",duration);
-            //print_packet();
-            if ( delete_item(client_port)!= OK) exit(-1); //TODO clean memory leaks
+            buffer[pos].duration = pkthdr->ts.tv_sec - buffer[pos].time->tv_sec;
+            debug("#### DELETE.%d: packets %d: duration %lu",buffer[pos].client_port,buffer[pos].packets,buffer[pos].duration);
+            print_conn(buffer[pos]);
+            delete_item(client_port);
         }
     }
+}
 
-    //printf("%d-%2d-%2d\n%2d:%2d:%2d.%ld", time->tm_year, time->tm_mon, time->tm_mday, time->tm_hour, time->tm_min,
-    //                                             time->tm_sec,pkthdr->ts.tv_usec);
+void init_item(unsigned short client_port,const struct pcap_pkthdr* pkthdr,struct iphdr *iph){
+
+    Ssl_data ssl_connection;
+    debug("adding port %i to buffer",client_port);
+    ssl_connection.client_port = client_port;
+    ssl_connection.time->tv_sec = pkthdr->ts.tv_sec;
+    ssl_connection.time->tv_usec = pkthdr->ts.tv_usec;
+    debug("time %lu",ssl_connection.time->tv_sec);
+    ssl_connection.packets = 1;
+    // get source and destination ip address
+    ssl_connection.client_ip = get_ip_addr(iph,"src");
+    ssl_connection.server_ip = get_ip_addr(iph,"dst");
+    append_item(&ssl_connection);
+    debug("hoho");
 }
 
 int append_item(Ssl_data* data){
@@ -224,6 +230,17 @@ void increment_count(unsigned short port){
         debug("A: %d: %d",buffer[pos].client_port, buffer[pos].packets);
         //TODO increment bytes zo ssl hlavicky
     }
+}
+
+void print_conn(Ssl_data data){
+
+    // convert time
+    struct tm* lt = localtime(&data.time->tv_sec);
+    char time[MAX_TIME];
+    // yyyy-mm-dd hh:mm:ss.usec
+    strftime(time, MAX_TIME-1, "%Y-%m-%d %X", lt);
+
+    printf("%s.%ld\n", time,data.time->tv_usec);
 }
 
 void convert_ascii(char *ascii_str, unsigned int val) {
