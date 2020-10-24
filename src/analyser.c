@@ -9,15 +9,11 @@
 // SSL vzdy port 443
 // verziu ssl urcuje server
 //TODO <timestamp>,<client ip><client port>,<server ip><SNI>,<bytes>,<packets>,<duration sec>
-// filtrovat vsetky tcp packety. Pride packet. Pozriem ci sa cislo portu nachadza v mojom strome
-/* A) nenachadza sa: pozriem flag tcp packetu ak SYN(0x002) -> uloz cislo portu a pocet=0 a cas do bufferu/stromu */
-/* B) nachadza sa:  pricitaj paket++,skontrolovat ci to je:
+/*TODO SNI, bytes z hlaviciek, Ipv6
  *                  a)ssl client hello - zobrat info do struktury
  *                  b)ssl server hello - kontrola ci je verzia podporovana
  *                                      - nastavit bool ze ok
- *                  c)packet so ssl, pricitaj dlzku (v hlavicke length),
- *                 d) tcp packet -> ak server posle FIN (0x011) tak koniec
- *                               -> inak zahod packet a zober dalsi*/
+*/
 
 // spojenia ktore neboli ukoncene ak sigint tak vypisat "-"
 
@@ -125,17 +121,16 @@ int set_filter(pcap_t* handler,bpf_u_int32 netmask) {
 }
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet) {
 
-    debug("hi");
+
     //	IP header -> X + SIZE_ETHERNET
-    struct iphdr *iph = (struct iphdr*)(packet + ETHERNET_SIZE);
+    struct iphdr* iph = (struct iphdr*)(packet + ETHERNET_SIZE);
     unsigned short iphdrlen = iph->ihl*4;
-    struct tcphdr *tcp = (struct tcphdr*)(packet + iphdrlen + ETHERNET_SIZE);
+    struct tcphdr* tcp = (struct tcphdr*)(packet + iphdrlen + ETHERNET_SIZE);
 
     unsigned short src_port = get_port(tcp, "src"); // potrebujem obidva porty skontrolovat vzdy ten co nie je 443
     if (src_port != SSL_PORT){
         if (!strcmp(check_flag(tcp),"SYN")) { // add new connection to buffer
             init_item(src_port,pkthdr,iph);
-            debug("hoo");
         }
         else {
             increment_count(src_port);
@@ -146,12 +141,12 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
         debug("clientport %d soucerport %d",client_port, src_port);
         // get destination port, check if its in buffer ak nie tak zahod ak je tak:
         int pos = find_item(client_port);
-        debug("ho");
         increment_count(client_port);
-        debug("yo");
+        debug("??");
         if (!strcmp(check_flag(tcp),"FIN") && pos != -1) {
-            //vypocitat duration, vypisat a zmazat z bufferu
+            //TODO sekundy a milisekundy nejako dokopy
             buffer[pos].duration = pkthdr->ts.tv_sec - buffer[pos].time->tv_sec;
+            //buffer[pos].duration->tv_usec = pkthdr->ts.tv_usec - buffer[pos].time->tv_usec;
             debug("#### DELETE.%d: packets %d: duration %lu",buffer[pos].client_port,buffer[pos].packets,buffer[pos].duration);
             print_conn(buffer[pos]);
             delete_item(client_port);
@@ -172,7 +167,6 @@ void init_item(unsigned short client_port,const struct pcap_pkthdr* pkthdr,struc
     ssl_connection.client_ip = get_ip_addr(iph,"src");
     ssl_connection.server_ip = get_ip_addr(iph,"dst");
     append_item(&ssl_connection);
-    debug("hoho");
 }
 
 int append_item(Ssl_data* data){
@@ -230,6 +224,7 @@ void increment_count(unsigned short port){
         debug("A: %d: %d",buffer[pos].client_port, buffer[pos].packets);
         //TODO increment bytes zo ssl hlavicky
     }
+    debug("hm");
 }
 
 void print_conn(Ssl_data data){
@@ -240,52 +235,8 @@ void print_conn(Ssl_data data){
     // yyyy-mm-dd hh:mm:ss.usec
     strftime(time, MAX_TIME-1, "%Y-%m-%d %X", lt);
 
-    printf("%s.%ld\n", time,data.time->tv_usec);
+    printf("%s.%lu,", time,data.time->tv_usec); // time
+    printf("%s,%d%s,<SNI>",data.client_ip,data.client_port,data.server_ip); //ip addresses
+    printf("<bytes>,%d,%lu\n",data.packets,data.duration);
 }
-
-void convert_ascii(char *ascii_str, unsigned int val) {
-    char ascii_val[16] = "";
-    unsigned int decimal = val; //decimal
-    if (32 <= decimal && decimal < 127) { //printable chars
-        sprintf(ascii_val,"%c",val);
-        strcat(ascii_str,ascii_val);
-    }
-    else { // non-printable values are replaced by a dot
-        strcat(ascii_str,".");
-    }
-}
-
-void print_packet(const u_char* packet, unsigned X) {
-
-    printf("0x%.3d0: ",X);
-    char ascii_str[16] = "";
-    unsigned Y = (X != 0) ? X*16 : 0; // print 0-15, 16-32, 32 - 64 ... B
-    for (unsigned i = Y; i < 16*(X+1); i++) {
-        if (no_bytes != 0) {
-            printf("%02X ", (unsigned int) packet[i]);
-            convert_ascii(ascii_str, (unsigned int) packet[i]);
-            no_bytes--;
-        }
-        else //if all packet has been printed, print spaces
-            printf("   ");
-    }
-    printf("%s\n",ascii_str);
-}
-
-char* extract_data(const u_char* packet, unsigned from_B, unsigned to_B) {
-    char *ascii_str = malloc(to_B-from_B+1);
-    //unsigned Y = (X != 0) ? X*16 : 0; // print 0-15, 16-32, 32 - 64 ... B
-    for (unsigned i = from_B; i <= to_B; i++) {
-        if (no_bytes != 0) {
-            //printf("%02X ", (unsigned int) packet[i]);
-            convert_ascii(ascii_str, (unsigned int) packet[i]);
-            no_bytes--;
-        }
-        else //if all packet has been printed, print spaces
-            printf("   ");
-    }
-    //printf("%s\n",ascii_str);
-    return ascii_str;
-}
-
 

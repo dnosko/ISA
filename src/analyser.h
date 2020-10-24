@@ -11,7 +11,6 @@
 #include <pcap/pcap.h>
 #include <pcap.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <pcap/pcap.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -32,7 +31,7 @@
 #define MAX_TIME 101
 
 typedef struct ssl_data {
-    struct timeval* time; //start //TODO upravit na tm strukturu atd
+    struct timeval* time; //start
     char* client_ip; //struct ip client_ip;
     unsigned client_port;
     char* server_ip;
@@ -48,7 +47,6 @@ unsigned buffer_len;
 
 //void print_packet(const u_char* packet, unsigned X);
 
-void convert_ascii(char *ascii_str, unsigned int val);
 int open_handler(char* interface, char* pcap_file);
 int analyse_file_packets(pcap_t* handler);
 int analyse_interface_packets(pcap_t* handler,bpf_u_int32 pNet);
@@ -64,11 +62,5 @@ int delete_item(unsigned short port);
 void increment_count(unsigned short port);
 /* prints connection */
 void print_conn(Ssl_data data);
-// converts in_time from seconds to real time
-void get_timestamp(struct tm* time,struct timeval in_time);
-void check_protocol(const u_char *packet,  struct iphdr *iph, unsigned short *src_port,
-                    unsigned short *dst_port);
-void get_src_dst_addr(char *src, char *dst, struct iphdr *iph);
-char* extract_data(const u_char* packet, unsigned from_B, unsigned to_B);
 
 #endif //ISA_ANALYSER_H

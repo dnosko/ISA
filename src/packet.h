@@ -11,6 +11,7 @@
 #include <netinet/if_ether.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <stdlib.h>
 
 #ifndef SSLSNIFF_PACKET_H
 #define SSLSNIFF_PACKET_H
@@ -24,5 +25,8 @@ unsigned short get_port(struct tcphdr *tcph,char* type);
 char* check_flag(struct tcphdr *tcph);
 /* returns IP adress, gets source if type = "src", destination if type = "dst" */
 char* get_ip_addr(struct iphdr *iph, char* type);
-
+/************************************************/
+void convert_ascii(char *ascii_str, unsigned int val);
+void print_packet(const u_char* packet, unsigned X);
+char* extract_data(const u_char* packet, unsigned from_B, unsigned to_B);
 #endif //SSLSNIFF_PACKET_H
