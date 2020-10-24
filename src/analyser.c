@@ -134,59 +134,39 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     unsigned short iphdrlen = iph->ihl*4;
     struct tcphdr *tcp=(struct tcphdr*)(packet + iphdrlen + ETHERNET_SIZE);
 
-    // get ports numbers
-    unsigned short* src_port = (unsigned short *) malloc(sizeof(unsigned short));
-    get_port(packet,tcp, src_port); // potrebujem obidva porty skontrolovat vzdy ten co nie je 443
-    if (*src_port != SSL_PORT){
+    unsigned short src_port = get_port(tcp, "src"); // potrebujem obidva porty skontrolovat vzdy ten co nie je 443
+    if (src_port != SSL_PORT){
         if (!strcmp(check_flag(tcp),"SYN")) { // add new connection to buffer
-            debug("adding port %i to buffer",*src_port);
-            ssl_connection.client_port = *src_port;
+            debug("adding port %i to buffer",src_port);
+            ssl_connection.client_port = src_port;
             ssl_connection.time->tv_sec = pkthdr->ts.tv_sec;
             ssl_connection.time->tv_usec = pkthdr->ts.tv_usec;
             debug("time %lu",ssl_connection.time->tv_sec);
             ssl_connection.packets = 1;
             append_item(&ssl_connection);
         }
-        else { // ACK or FIN from client -> increment packets and bytes
-            int pos = find_item(*src_port);
-            debug("port %d on ppos %d",*src_port,pos);
-            if (pos != -1) { //port is in buffer
-                buffer[pos].packets++;
-                //ssl_connection.packets++;
-                debug("A: %d: %d",buffer[pos].client_port, buffer[pos].packets);
-                //TODO increment bytes zo ssl hlavicky
-            }
+        else {
+            increment_count(src_port);
         }
     }
     else { // source je SSL
-        unsigned short client_port = ntohs(tcp->dest);
-        debug("clientport %d soucerport %d",client_port, *src_port);
+        unsigned short client_port = get_port(tcp, "dst");
+        debug("clientport %d soucerport %d",client_port, src_port);
         // get destination port, check if its in buffer ak nie tak zahod ak je tak:
         int pos = find_item(client_port);
-        if (pos != -1) { // ak je -1 tak zahod -> nie je v bufferi
-            buffer[pos].packets++;
-            debug("B: %d: %d",buffer[pos].client_port, buffer[pos].packets);
-            //TODO increment bytes zo ssl hlavicky
-            // check if flag is FIN or not
-            if (!strcmp(check_flag(tcp),"FIN")) {
-                //vypocitat duration, vypisat a zmazat z bufferu
-                debug("#### DELETE.%lu..%lu..packets %d",ssl_connection.time->tv_sec,buffer[pos].time->tv_sec,buffer[pos].packets);
-                long duration = pkthdr->ts.tv_sec - buffer[pos].time->tv_sec;
-                debug("connection duration %lu sec",duration);
-                //print_packet();
-                if ( delete_item(client_port)!= OK) exit(-1); //TODO clean memory leaks
-            }
-            else { // ak nie FIN tak iba pripocitaj
-                buffer[pos].packets++;
-                debug("not fin: %d: %d",buffer[pos].client_port, buffer[pos].packets);
-                //TODO increment bytes zo ssl hlavicky
-            }
+        increment_count(client_port);
+        if (!strcmp(check_flag(tcp),"FIN") && pos != -1) {
+            //vypocitat duration, vypisat a zmazat z bufferu
+            debug("#### DELETE.%lu..%lu..packets %d",ssl_connection.time->tv_sec,buffer[pos].time->tv_sec,buffer[pos].packets);
+            long duration = pkthdr->ts.tv_sec - buffer[pos].time->tv_sec;
+            debug("connection duration %lu sec",duration);
+            //print_packet();
+            if ( delete_item(client_port)!= OK) exit(-1); //TODO clean memory leaks
         }
     }
 
     //printf("%d-%2d-%2d\n%2d:%2d:%2d.%ld", time->tm_year, time->tm_mon, time->tm_mday, time->tm_hour, time->tm_min,
     //                                             time->tm_sec,pkthdr->ts.tv_usec);
-    free(src_port);
 }
 
 int append_item(Ssl_data* data){
@@ -234,6 +214,16 @@ int delete_item(unsigned short port){
         buffer_len--;
     }
     return OK;
+}
+
+void increment_count(unsigned short port){
+    int pos = find_item(port);
+    debug("port %d on pos %d",port,pos);
+    if (pos != -1) { //port is in buffer
+        buffer[pos].packets++;
+        debug("A: %d: %d",buffer[pos].client_port, buffer[pos].packets);
+        //TODO increment bytes zo ssl hlavicky
+    }
 }
 
 void convert_ascii(char *ascii_str, unsigned int val) {

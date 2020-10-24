@@ -6,9 +6,11 @@
 
 #include "packet.h"
 
-void get_port(const u_char *packet,struct tcphdr *tcph,unsigned short *src_port){
-
-    *src_port = ntohs(tcph->source);
+unsigned short get_port(struct tcphdr *tcph,char* type){
+    if (!strcmp("src",type))
+        return ntohs(tcph->source);
+    if (!strcmp("dst",type))
+        return ntohs(tcph->dest);
 }
 
 char* check_flag(struct tcphdr *tcph){

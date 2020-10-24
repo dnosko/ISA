@@ -14,7 +14,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <netinet/ip.h>
-#include <string.h>
 #include <pcap/pcap.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -61,6 +60,7 @@ int append_item(Ssl_data* data);
 /* looks for item in buffer based on port, returns NULL if buffer doesn't contain the item, returns position if found the item and -1 if not */
 int find_item(unsigned short port);
 int delete_item(unsigned short port);
+void increment_count(unsigned short port);
 // converts in_time from seconds to real time
 void get_timestamp(struct tm* time,struct timeval in_time);
 void check_protocol(const u_char *packet,  struct iphdr *iph, unsigned short *src_port,

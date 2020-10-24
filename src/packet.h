@@ -8,6 +8,7 @@
 #include <netinet/tcp.h>
 #include <netinet/ip.h>
 #include <netinet/if_ether.h>
+#include <string.h>
 
 #ifndef SSLSNIFF_PACKET_H
 #define SSLSNIFF_PACKET_H
@@ -15,8 +16,8 @@
 #define ETHERNET_SIZE sizeof(struct ethhdr)
 #define SSL_PORT 443
 
-
-void get_port(const u_char *packet, struct tcphdr *tcph, unsigned short* src_port);
+/* returns port number, takes tcp header and type="src" for source port and "dst" for destination port */
+unsigned short get_port(struct tcphdr *tcph,char* type);
 /* returns SYN if SYN flag is set and ACK not, returns FIN if FIN flag is set (client side) and empty string if other*/
 char* check_flag(struct tcphdr *tcph);
 
