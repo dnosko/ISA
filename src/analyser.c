@@ -137,7 +137,7 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
         }
         else {
             increment_count(src_port,payload);
-            if(payload[HANDSHAKE_B] == CLIENT_HELLO) {
+            if((payload[CONTENT_B] == HANDSHAKE) && (payload[HANDSHAKE_B] == CLIENT_HELLO)) {
                 add_sni(payload,src_port);
             }
         }

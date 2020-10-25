@@ -57,27 +57,23 @@ char convert_ascii(unsigned int val) {
         debug("val %c\n",val);
         return ascii_val[0];
     }
-    return -1; //non printable ascii
+    return '\0'; //non printable ascii
 }
 
 char* extract_data(const u_char* packet, unsigned from_B, unsigned len) {
-    char* ascii_str = (char*) malloc(sizeof(char)*len);
-    //char ascii_str[60] = "";
+    char* ascii_str = (char*) malloc(sizeof(char)*len+1);
     int pos = 0;
     unsigned end_sni = from_B+len;
     char ret_val = 0;
-    int debug_len = len;
     for(unsigned i = from_B; i < end_sni; i++) {
-        //printf("packet %02X\n", (unsigned int) packet[i]);
+        //debug"packet %02X\n", (unsigned int) packet[i]);
         ret_val = convert_ascii((unsigned int) packet[i]);
-        if (ret_val != -1)
+        if (ret_val != '\0')
             ascii_str[pos] = ret_val;
         else
             ascii_str[pos] = '\0';
         pos++;
-        //i++;
-        //len--;
     }
-    debug("extract_data %s len: %d pos: %d\n",ascii_str,debug_len,pos);
+    debug("extract_data %s len: %d pos: %d\n",ascii_str,len,pos);
     return ascii_str;
 }
