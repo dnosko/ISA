@@ -47,33 +47,12 @@ char* get_ip_addr(struct iphdr *iph, char* type) {
     return inet_ntoa(ip_addr.sin_addr);
 }
 
-/******************************FORMAT******************************************************/
-
-char convert_ascii(unsigned int val) {
-    char ascii_val[2];
-    unsigned int decimal = val; //decimal
-    if ((32 <= decimal && decimal < 127)) { //printable chars
-        sprintf(ascii_val,"%c",val);
-        debug("val %c\n",val);
-        return ascii_val[0];
-    }
-    return '\0'; //non printable ascii
-}
-
-char* extract_data(const u_char* packet, unsigned from_B, unsigned len) {
-    char* ascii_str = (char*) malloc(sizeof(char)*len+1);
-    int pos = 0;
-    unsigned end_sni = from_B+len;
-    char ret_val = 0;
-    for(unsigned i = from_B; i < end_sni; i++) {
-        //debug"packet %02X\n", (unsigned int) packet[i]);
-        ret_val = convert_ascii((unsigned int) packet[i]);
-        if (ret_val != '\0')
-            ascii_str[pos] = ret_val;
-        else
-            ascii_str[pos] = '\0';
-        pos++;
-    }
-    debug("extract_data %s len: %d pos: %d\n",ascii_str,len,pos);
-    return ascii_str;
+long get_len(u_char* payload, int position){
+    long len = 0;
+    char hex_str[7];
+    //printf("get_len 0x%02x%02x\n",payload[position], payload[position + 1]);
+    sprintf(hex_str,"0x%02x%02x",payload[position], payload[position + 1]);
+    len = strtol(hex_str, NULL, 16);
+    debug("GET_LEN: %ld\n", len);
+    return len;
 }

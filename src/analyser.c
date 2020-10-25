@@ -189,16 +189,6 @@ void add_sni(u_char *payload, unsigned short port){
     }
 }
 
-long get_len(u_char* payload, int position){
-    long len = 0;
-    char hex_str[7];
-    //printf("get_len 0x%02x%02x\n",payload[position], payload[position + 1]);
-    sprintf(hex_str,"0x%02x%02x",payload[position], payload[position + 1]);
-    len = strtol(hex_str, NULL, 16);
-    debug("GET_LEN: %ld\n", len);
-    return len;
-}
-
 int append_item(Ssl_data* data){
     debug("buffer_len %i",buffer_len);
     buffer_len += 1;
@@ -260,16 +250,4 @@ void increment_count(unsigned short port, u_char* payload){
     debug("hm");
 }
 
-void print_conn(Ssl_data data){
-
-    // convert time
-    struct tm* lt = localtime(&data.time.tv_sec);
-    char time[MAX_TIME];
-    // yyyy-mm-dd hh:mm:ss.usec
-    strftime(time, MAX_TIME-1, "%Y-%m-%d %X", lt);
-
-    printf("%s.%lu,", time,data.time.tv_usec); // time
-    printf("%s,%d,%s,%s,",data.client_ip,data.client_port,data.server_ip,data.SNI); //ip addresses
-    printf("%lu,%d,%lu\n",data.size_in_B,data.packets,data.duration);
-}
 
