@@ -13,13 +13,13 @@
  *                  a)ssl client hello - zobrat info do struktury
  *                  b)ssl server hello - kontrola ci vobec vypisat
  * KONTROLA VERZII -> ak nie je podporovana tak skip
+ * VYPISAT NEUKONCENE SPOJENIA ALE IBA AK PRISIEL SERVER_HELLO TAKZE KONTROLA SERVE-hELLO
 */
 
 // spojenia ktore neboli ukoncene ak sigint tak vypisat "-"
 
 static volatile int keepRunning = false;
 
-int no_bytes;
 
 void intHandler(int dummy) {
     keepRunning = true;
@@ -127,37 +127,42 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     unsigned short iphdrlen = iph->ihl*4;
     struct tcphdr* tcp = (struct tcphdr*)(packet + iphdrlen + ETHERNET_SIZE);
     u_char *payload; /* Packet payload */
-    unsigned short tcphdrlen = 32;
-    payload = (u_char *)(packet + ETHERNET_SIZE + iphdrlen + tcphdrlen); // this is ssl payload
+    payload = (u_char *)(packet + ETHERNET_SIZE + iphdrlen + TCPHDRLEN); // this is ssl payload
 
     unsigned short src_port = get_port(tcp, "src"); // potrebujem obidva porty skontrolovat vzdy ten co nie je 443
     if (src_port != SSL_PORT){
-        if (!strcmp(check_flag(tcp),"SYN")) { // add new connection to buffer
-            init_item(src_port,pkthdr,iph,payload);
-        }
-        else {
-            increment_count(src_port,payload);
-            if((payload[CONTENT_B] == HANDSHAKE) && (payload[HANDSHAKE_B] == CLIENT_HELLO)) {
-                add_sni(payload,src_port);
-            }
-        }
+        process_client(src_port,pkthdr,payload,iph,tcp);
     }
     else { // source je SSL
-        unsigned short client_port = get_port(tcp, "dst");
-        debug("clientport %d soucerport %d",client_port, src_port);
-        // get destination port, check if its in buffer ak nie tak zahod ak je tak:
-        int pos = find_item(client_port);
-        increment_count(client_port,payload);
-        if (!strcmp(check_flag(tcp),"FIN") && pos != -1) {
-            //TODO sekundy a milisekundy nejako dokopy
-            debug("lolf");
-            buffer[pos].duration = pkthdr->ts.tv_sec - buffer[pos].time.tv_sec;
-            //buffer[pos].duration->tv_usec = pkthdr->ts.tv_usec - buffer[pos].time->tv_usec;
-            debug("#### DELETE.%d: packets %d: duration %lu",buffer[pos].client_port,buffer[pos].packets,buffer[pos].duration);
-            print_conn(buffer[pos]);
-            delete_item(client_port);
+        process_server(tcp,payload,pkthdr);
+    }
+}
+
+void process_client(unsigned short port,const struct pcap_pkthdr* pkthdr,u_char* payload,struct iphdr* iph,struct tcphdr* tcp){
+
+    if (!strcmp(check_flag(tcp),"SYN")) { // add new connection to buffer
+        init_item(port,pkthdr,iph,payload);
+    }
+    else {
+        increment_count(port,payload);
+        if((payload[CONTENT_B] == HANDSHAKE) && (payload[HANDSHAKE_B] == CLIENT_HELLO)) {
+            add_sni(payload,port);
         }
-        debug("tf going on");
+    }
+}
+
+void process_server(struct tcphdr* tcp, u_char* payload,const struct pcap_pkthdr* pkthdr){
+    unsigned short client_port = get_port(tcp, "dst");
+    // get destination port, check if its in buffer ak nie tak zahod ak je tak:
+    int pos = find_item(client_port);
+    increment_count(client_port,payload);
+    if (!strcmp(check_flag(tcp),"FIN") && pos != -1) {
+        //TODO sekundy a milisekundy nejako dokopy
+        buffer[pos].duration = pkthdr->ts.tv_sec - buffer[pos].time.tv_sec;
+        //buffer[pos].duration->tv_usec = pkthdr->ts.tv_usec - buffer[pos].time->tv_usec;
+        debug("#### DELETE.%d: packets %d: duration %lu",buffer[pos].client_port,buffer[pos].packets,buffer[pos].duration);
+        print_conn(buffer[pos]);
+        delete_item(client_port);
     }
 }
 

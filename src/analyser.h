@@ -37,6 +37,7 @@
 #define HANDSHAKE 0x16
 #define APP_DATA 0x17
 
+#define TCPHDRLEN  32
 
 
 Ssl_data* buffer;
@@ -51,6 +52,10 @@ int analyse_interface_packets(pcap_t* handler,bpf_u_int32 pNet);
 int ppcap_loop(pcap_t* handler);
 int set_filter(pcap_t* handler,bpf_u_int32 netmask);
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet);
+/* process messages from client, port = client's port*/
+void process_client(unsigned short port,const struct pcap_pkthdr* pkthdr,u_char* payload,struct iphdr* iph,struct tcphdr* tcp);
+/* process messages from server */
+void process_server(struct tcphdr* tcp, u_char* payload,const struct pcap_pkthdr* pkthdr);
 void init_item(unsigned short client_port,const struct pcap_pkthdr* pkthdr,struct iphdr *iph,u_char* payload);
 /* finds sni */
 void add_sni(u_char *payload, unsigned short port);
