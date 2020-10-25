@@ -48,18 +48,16 @@ char* get_ip_addr(struct iphdr *iph, char* type) {
 }
 
 /******************************FORMAT******************************************************/
-void convert_ascii(char *ascii_str, unsigned int val) {
-    char ascii_val[32] = "";
+
+char convert_ascii(unsigned int val) {
+    char ascii_val[1];
     unsigned int decimal = val; //decimal
     if (32 <= decimal && decimal < 127) { //printable chars
         sprintf(ascii_val,"%c",val);
-        printf("ascii_val %s   ",ascii_val);
-        printf("val %c   ",val);
-        strcat(ascii_str,ascii_val);
-        printf("ascii_str %s   ",ascii_str);
+        return ascii_val[0];
     }
     else { // non printable ascii, end of sni
-        return;
+        return -1;
     }
 }
 
@@ -71,7 +69,7 @@ void print_packet(const u_char* packet, unsigned X, int no_bytes) {
     for (unsigned i = Y; i < 16*(X+1); i++) {
         if (no_bytes != 0) {
             printf("%02X ", (unsigned int) packet[i]);
-            convert_ascii(ascii_str, (unsigned int) packet[i]);
+            convert_ascii((unsigned int) packet[i]);
             no_bytes--;
         }
         else //if all packet has been printed, print spaces
@@ -80,20 +78,19 @@ void print_packet(const u_char* packet, unsigned X, int no_bytes) {
     printf("%s\n",ascii_str);
 }
 
-char* extract_data(const u_char* packet, unsigned from_B, unsigned to_B, int no_bytes) {
+char* extract_data(const u_char* packet, unsigned from_B, unsigned to_B) {
     char* ascii_str = (char*) malloc(sizeof(char)*(to_B-from_B+1));
-    //unsigned Y = (X != 0) ? X*16 : 0; // print 0-15, 16-32, 32 - 64 ... B
-    int Bytes = to_B-from_B;
+    int pos = 0;
+    char ret_val;
     for (unsigned i = from_B; i <= to_B; i++) {
-        if (Bytes != 0) {
-            //printf("%02X ", (unsigned int) packet[i]);
-            convert_ascii(ascii_str, (unsigned int) packet[i]);
-            printf("byte: %d: %s\n",no_bytes,ascii_str);
-            Bytes--;
-        }
-        else //if all packet has been printed, print spaces
-            printf("   ");
+        printf("packet %02X\n", (unsigned int) packet[i]);
+        ret_val = convert_ascii((unsigned int) packet[i]);
+        if (ret_val != -1)
+            ascii_str[pos] = ret_val;
+        else
+            break;
+        pos++;
     }
-    printf("%s\n",ascii_str);
+
     return ascii_str;
 }

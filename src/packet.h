@@ -25,8 +25,10 @@ unsigned short get_port(struct tcphdr *tcph,char* type);
 char* check_flag(struct tcphdr *tcph);
 /* returns IP adress, gets source if type = "src", destination if type = "dst" */
 char* get_ip_addr(struct iphdr *iph, char* type);
+/***********************************************/
+
 /************************************************/
-void convert_ascii(char *ascii_str, unsigned int val);
+char convert_ascii(unsigned int val);
 void print_packet(const u_char* packet, unsigned X, int no_bytes);
-char* extract_data(const u_char* packet, unsigned from_B, unsigned to_B,int no_bytes);
+char* extract_data(const u_char* packet, unsigned from_B, unsigned to_B);
 #endif //SSLSNIFF_PACKET_H
