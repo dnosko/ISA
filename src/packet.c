@@ -50,47 +50,34 @@ char* get_ip_addr(struct iphdr *iph, char* type) {
 /******************************FORMAT******************************************************/
 
 char convert_ascii(unsigned int val) {
-    char ascii_val[1];
+    char ascii_val[2];
     unsigned int decimal = val; //decimal
-    if (32 <= decimal && decimal < 127) { //printable chars
+    if ((32 <= decimal && decimal < 127)) { //printable chars
         sprintf(ascii_val,"%c",val);
+        debug("val %c\n",val);
         return ascii_val[0];
     }
-    else { // non printable ascii, end of sni
-        return -1;
-    }
+    return -1; //non printable ascii
 }
 
-void print_packet(const u_char* packet, unsigned X, int no_bytes) {
-
-    printf("0x%.3d0: ",X);
-    char ascii_str[16] = "";
-    unsigned Y = (X != 0) ? X*16 : 0; // print 0-15, 16-32, 32 - 64 ... B
-    for (unsigned i = Y; i < 16*(X+1); i++) {
-        if (no_bytes != 0) {
-            printf("%02X ", (unsigned int) packet[i]);
-            convert_ascii((unsigned int) packet[i]);
-            no_bytes--;
-        }
-        else //if all packet has been printed, print spaces
-            printf("   ");
-    }
-    printf("%s\n",ascii_str);
-}
-
-char* extract_data(const u_char* packet, unsigned from_B, unsigned to_B) {
-    char* ascii_str = (char*) malloc(sizeof(char)*(to_B-from_B+1));
+char* extract_data(const u_char* packet, unsigned from_B, unsigned len) {
+    char* ascii_str = (char*) malloc(sizeof(char)*len);
+    //char ascii_str[60] = "";
     int pos = 0;
-    char ret_val;
-    for (unsigned i = from_B; i <= to_B; i++) {
-        printf("packet %02X\n", (unsigned int) packet[i]);
+    unsigned i = from_B;
+    char ret_val = 0;
+    int debug_len = len;
+    while(len != 0) {
+        //printf("packet %02X\n", (unsigned int) packet[i]);
         ret_val = convert_ascii((unsigned int) packet[i]);
         if (ret_val != -1)
             ascii_str[pos] = ret_val;
         else
-            break;
+            ascii_str[pos] = '\0';
         pos++;
+        i++;
+        len--;
     }
-
+    printf("extract_data %s len: %d pos: %d\n",ascii_str,debug_len,pos);
     return ascii_str;
 }

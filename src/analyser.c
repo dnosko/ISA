@@ -8,11 +8,11 @@
 
 // SSL vzdy port 443
 // verziu ssl urcuje server
-//TODO <timestamp>,<client ip><client port>,<server ip><SNI>,<bytes>,<packets>,<duration sec>
-/*TODO SNI, bytes z hlaviciek, Ipv6
+//TODO <timestamp>,<client ip>,<client port>,<server ip>,<SNI>,<bytes>,<packets>,<duration sec>
+/*TODO SNI, Ipv6
  *                  a)ssl client hello - zobrat info do struktury
  *                  b)ssl server hello - kontrola ci je verzia podporovana
- *                                      - nastavit bool ze ok
+ * PODLA VERZIE BRAT SNI OFFSET
 */
 
 // spojenia ktore neboli ukoncene ak sigint tak vypisat "-"
@@ -136,18 +136,9 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
             init_item(src_port,pkthdr,iph,payload);
         }
         else {
-            increment_count(src_port);
-            int content_type = payload[CONTENT_B];
-            debug("tf");
-            /*if (content_type == HANDSHAKE || content_type == APP_DATA) {
-                //addlen
-                int pos = find_item(src_port);
-                //printf("test: %02X %02X %02X %02X %02X\n",payload[0],payload[1],payload[2],payload[3],payload[4]);
-                long len = get_len(payload);
-            }*/
-
-            if(payload[HANDSHAKE_B] == HANDSHAKE_MSG) {
-                add_sni(payload,src_port,153,181); // je to ine pre kazde spojenie :(
+            increment_count(src_port,payload);
+            if(payload[HANDSHAKE_B] == CLIENT_HELLO) {
+                add_sni(payload,src_port);
             }
         }
     }
@@ -156,8 +147,7 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
         debug("clientport %d soucerport %d",client_port, src_port);
         // get destination port, check if its in buffer ak nie tak zahod ak je tak:
         int pos = find_item(client_port);
-        increment_count(client_port);
-        debug("??");
+        increment_count(client_port,payload);
         if (!strcmp(check_flag(tcp),"FIN") && pos != -1) {
             //TODO sekundy a milisekundy nejako dokopy
             debug("lolf");
@@ -182,24 +172,35 @@ void init_item(unsigned short client_port,const struct pcap_pkthdr* pkthdr,struc
     ssl_connection.client_ip = get_ip_addr(iph,"src");
     ssl_connection.server_ip = get_ip_addr(iph,"dst");
 
-    ssl_connection.size_in_B = get_len(payload);
+    ssl_connection.size_in_B = get_len(payload,SSL_LEN);
 
     append_item(&ssl_connection);
 }
 
-void add_sni(u_char *payload, unsigned short port, int from_B, int to_B){
-    char* sni = extract_data(payload,from_B,to_B); // SNI on 28 Bytes
+void add_sni(u_char *payload, unsigned short port){
+
     int pos = find_item(port);
-    if (pos != -1)
+    int len = get_len(payload,SNI_LEN);
+    char* sni = extract_data(payload,127,len);
+    if (pos != -1) {
+        //check version
+        if (payload[VERSION_B] != 0x03) {
+            debug("version not supported");
+            buffer[pos].version = "NONE";
+            return;
+        }
+        //if (payload[VERSION_B+1] == 0x02) //TLS 1.2
         buffer[pos].SNI = sni;
+    }
 }
 
-long get_len(u_char* payload){
+long get_len(u_char* payload, int position){
     long len = 0;
     char hex_str[7];
-    sprintf(hex_str,"0x%02x%02x",payload[SSL_LEN], payload[SSL_LEN + 1]);
+    //printf("get_len 0x%02x%02x\n",payload[position], payload[position + 1]);
+    sprintf(hex_str,"0x%02x%02x",payload[position], payload[position + 1]);
     len = strtol(hex_str, NULL, 16);
-    debug("SSL: %ld\n", len);
+    debug("GET_LEN: %ld\n", len);
     return len;
 }
 
@@ -250,13 +251,16 @@ int delete_item(unsigned short port){
     return OK;
 }
 
-void increment_count(unsigned short port){
+void increment_count(unsigned short port, u_char* payload){
+    int content_type = payload[CONTENT_B];
     int pos = find_item(port);
     debug("port %d on pos %d",port,pos);
     if (pos != -1) { //port is in buffer
         buffer[pos].packets++;
         debug("A: %d: %d",buffer[pos].client_port, buffer[pos].packets);
-        //buffer[pos].size_in_B += get_len(payload);
+        if (content_type == HANDSHAKE || content_type == APP_DATA) {
+            buffer[pos].size_in_B += get_len(payload,SSL_LEN);
+        }
     }
     debug("hm");
 }
@@ -270,7 +274,7 @@ void print_conn(Ssl_data data){
     strftime(time, MAX_TIME-1, "%Y-%m-%d %X", lt);
 
     printf("%s.%lu,", time,data.time.tv_usec); // time
-    printf("%s,%d%s,%s,",data.client_ip,data.client_port,data.server_ip,data.SNI); //ip addresses
+    printf("%s,%d,%s,%s,",data.client_ip,data.client_port,data.server_ip,data.SNI); //ip addresses
     printf("%lu,%d,%lu\n",data.size_in_B,data.packets,data.duration);
 }
 
