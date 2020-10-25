@@ -34,6 +34,7 @@
 #define SNI_LEN 125 // 125-126th B - length of SNI
 #define HANDSHAKE_B 5 // handshake type at 5th B
 #define CLIENT_HELLO 0x01 //starts at 6th B
+#define SERVER_HELLO 0x02
 #define HANDSHAKE 0x16
 #define APP_DATA 0x17
 

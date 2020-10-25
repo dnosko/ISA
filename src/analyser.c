@@ -9,11 +9,12 @@
 // SSL vzdy port 443
 // verziu ssl urcuje server
 //TODO <timestamp>,<client ip>,<client port>,<server ip>,<SNI>,<bytes>,<packets>,<duration sec>
-/*TODO SNI, Ipv6
- *                  a)ssl client hello - zobrat info do struktury
- *                  b)ssl server hello - kontrola ci vobec vypisat
+/*TODO
+ * IPV6
  * KONTROLA VERZII -> ak nie je podporovana tak skip
  * VYPISAT NEUKONCENE SPOJENIA ALE IBA AK PRISIEL SERVER_HELLO TAKZE KONTROLA SERVE-hELLO
+ * PRI NASILU ZATVORENI UVOLNIT PAMAT, VYPISAT VSETKO
+ * KONTROLA CI DANE ROZHRANIE EXISTUJE
  * daj init, delete etc do ineho suboru, plus algoritmus na sorting popr bin strom
 */
 
@@ -97,6 +98,26 @@ int ppcap_loop(pcap_t* handler){
         //pcap_close(handler);
         return return_code;
     }
+
+    unsigned i,len;
+    len = buffer_len;
+    while(len != 0) {
+        printf("buffer_len %d\n",buffer_len);
+        i = len -1;
+        buffer[i].duration = (float) -1.0;
+        // co je kurva na SNI ??????
+        // printf("buffer port %s\n",buffer[i].SNI);
+        /*if (buffer[i].server_hello){
+            printf("NN\n");
+            print_conn(buffer[i]);
+            delete_item(buffer[i].client_port);
+        }*/
+        printf("NN\n");
+        delete_item(buffer[i].client_port);
+        //free(&buffer[i]);
+        len--;
+    }
+
     return OK;
 }
 
@@ -155,8 +176,11 @@ void process_server(struct tcphdr* tcp, u_char* payload,const struct pcap_pkthdr
     unsigned short client_port = get_port(tcp, "dst");
     // get destination port, check if its in buffer ak nie tak zahod ak je tak:
     int pos = find_item(client_port);
+    if((payload[CONTENT_B] == HANDSHAKE) && (payload[HANDSHAKE_B] == SERVER_HELLO)) {
+        buffer[pos].server_hello = true;
+    }
     increment_count(client_port,payload);
-    if (!strcmp(check_flag(tcp),"FIN") && pos != -1) {
+    if (!strcmp(check_flag(tcp),"FIN") && pos != -1 && buffer[pos].server_hello) {
         debug("get_duration %f\n",get_duration(buffer[pos].time, pkthdr->ts));
         buffer[pos].duration = get_duration(buffer[pos].time, pkthdr->ts);//get_duration(buffer[pos].time, pkthdr->ts);
         debug("#### DELETE.%d: packets %d: duration %f",buffer[pos].client_port,buffer[pos].packets,buffer[pos].duration);
@@ -185,10 +209,10 @@ void init_item(unsigned short client_port,const struct pcap_pkthdr* pkthdr,struc
 void add_sni(u_char *payload, unsigned short port){
 
     int pos = find_item(port);
-    int len = get_len(payload,SNI_LEN);
-    char* sni = extract_data(payload,127,len);
+    int len = (int)get_len(payload,SNI_LEN);
+    char* sni = extract_data(payload,127,len+1);
     if (pos != -1) {
-        //if (payload[VERSION_B+1] == 0x02) //TLS 1.2
+        //if (sni[0] == '\0') buffer[pos].SNI = "NO SNI"; // kontrola verzie, lebo niekedy su na inej pozicii SNI
         buffer[pos].SNI = sni;
     }
 }

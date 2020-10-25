@@ -32,6 +32,7 @@ char* extract_data(const u_char* packet, unsigned from_B, unsigned len) {
             ascii_str[pos] = '\0';
         pos++;
     }
+    ascii_str[len] = '\0';
     debug("extract_data %s len: %d pos: %d\n",ascii_str,len,pos);
     return ascii_str;
 }
@@ -43,8 +44,8 @@ void print_conn(Ssl_data data){
     char time[MAX_TIME];
     // yyyy-mm-dd hh:mm:ss.usec
     strftime(time, MAX_TIME-1, "%Y-%m-%d %X", lt);
-
     printf("%s.%lu,", time,data.time.tv_usec); // time
     printf("%s,%d,%s,%s,",data.client_ip,data.client_port,data.server_ip,data.SNI); //ip addresses
-    printf("%lu,%d,%3f\n",data.size_in_B,data.packets,data.duration);
+    if (data.duration == -1) printf("%lu,%d,%c\n",data.size_in_B,data.packets,'-');
+    else printf("%lu,%d,%.3f\n",data.size_in_B,data.packets,data.duration);
 }
