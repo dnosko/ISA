@@ -11,8 +11,8 @@
 //TODO <timestamp>,<client ip>,<client port>,<server ip>,<SNI>,<bytes>,<packets>,<duration sec>
 /*TODO SNI, Ipv6
  *                  a)ssl client hello - zobrat info do struktury
- *                  b)ssl server hello - kontrola ci je verzia podporovana
- * PODLA VERZIE BRAT SNI OFFSET
+ *                  b)ssl server hello - kontrola ci vobec vypisat
+ * KONTROLA VERZII -> ak nie je podporovana tak skip
 */
 
 // spojenia ktore neboli ukoncene ak sigint tak vypisat "-"
@@ -177,18 +177,13 @@ void init_item(unsigned short client_port,const struct pcap_pkthdr* pkthdr,struc
     append_item(&ssl_connection);
 }
 
+
 void add_sni(u_char *payload, unsigned short port){
 
     int pos = find_item(port);
     int len = get_len(payload,SNI_LEN);
     char* sni = extract_data(payload,127,len);
     if (pos != -1) {
-        //check version
-        if (payload[VERSION_B] != 0x03) {
-            debug("version not supported");
-            buffer[pos].version = "NONE";
-            return;
-        }
         //if (payload[VERSION_B+1] == 0x02) //TLS 1.2
         buffer[pos].SNI = sni;
     }

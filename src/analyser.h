@@ -47,7 +47,7 @@ typedef struct ssl_data {
     unsigned long size_in_B;
     unsigned packets;
     unsigned long duration; //last - first packet
-    char* version;
+    bool server_hello;
 } Ssl_data;
 
 Ssl_data* buffer;
