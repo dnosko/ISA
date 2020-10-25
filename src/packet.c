@@ -56,3 +56,20 @@ long get_len(u_char* payload, int position){
     debug("GET_LEN: %ld\n", len);
     return len;
 }
+
+float get_duration(struct timeval start, struct timeval end){
+
+    long milisec_start = start.tv_sec * MILLI + start.tv_usec;
+    debug("milliseconds_start %ld\n", milisec_start);
+    long milisec_end = end.tv_sec * MILLI + end.tv_usec;
+    debug("milliseconds_end %ld\n", milisec_end);
+    long milisec = milisec_end - milisec_start;
+    debug("seconds %ld\n",milisec );
+    float sec_ = (float) milisec;
+    debug("float ??? %f\n",sec_);
+    float sec = sec_/1000 ;
+    debug("float ok %f\n",sec);
+    if (sec < 0)
+        sec *= -1;
+    return sec;
+}

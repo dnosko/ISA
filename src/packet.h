@@ -19,6 +19,7 @@
 
 #define ETHERNET_SIZE sizeof(struct ethhdr)
 #define SSL_PORT 443
+#define MILLI 1000 // to get milliseconds
 
 typedef struct ssl_data {
     struct timeval time; //start
@@ -28,7 +29,7 @@ typedef struct ssl_data {
     char* SNI;
     unsigned long size_in_B;
     unsigned packets;
-    unsigned long duration; //last - first packet
+    float duration; //last - first packet
     bool server_hello;
 } Ssl_data;
 
@@ -38,7 +39,9 @@ unsigned short get_port(struct tcphdr *tcph,char* type);
 char* check_flag(struct tcphdr *tcph);
 /* returns IP adress, gets source if type = "src", destination if type = "dst" */
 char* get_ip_addr(struct iphdr *iph, char* type);
-/*returns length from ssl header*/
+/* returns length from ssl header*/
 long get_len(u_char* payload, int position);
+/* returns duration in seconds with precision on milliseconds  */
+float get_duration(struct timeval start, struct timeval end);
 
 #endif //SSLSNIFF_PACKET_H

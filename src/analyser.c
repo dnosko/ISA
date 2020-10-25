@@ -14,6 +14,7 @@
  *                  b)ssl server hello - kontrola ci vobec vypisat
  * KONTROLA VERZII -> ak nie je podporovana tak skip
  * VYPISAT NEUKONCENE SPOJENIA ALE IBA AK PRISIEL SERVER_HELLO TAKZE KONTROLA SERVE-hELLO
+ * daj init, delete etc do ineho suboru, plus algoritmus na sorting popr bin strom
 */
 
 // spojenia ktore neboli ukoncene ak sigint tak vypisat "-"
@@ -121,7 +122,6 @@ int set_filter(pcap_t* handler,bpf_u_int32 netmask) {
 }
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet) {
 
-
     //	IP header -> X + SIZE_ETHERNET
     struct iphdr* iph = (struct iphdr*)(packet + ETHERNET_SIZE);
     unsigned short iphdrlen = iph->ihl*4;
@@ -157,10 +157,9 @@ void process_server(struct tcphdr* tcp, u_char* payload,const struct pcap_pkthdr
     int pos = find_item(client_port);
     increment_count(client_port,payload);
     if (!strcmp(check_flag(tcp),"FIN") && pos != -1) {
-        //TODO sekundy a milisekundy nejako dokopy
-        buffer[pos].duration = pkthdr->ts.tv_sec - buffer[pos].time.tv_sec;
-        //buffer[pos].duration->tv_usec = pkthdr->ts.tv_usec - buffer[pos].time->tv_usec;
-        debug("#### DELETE.%d: packets %d: duration %lu",buffer[pos].client_port,buffer[pos].packets,buffer[pos].duration);
+        debug("get_duration %f\n",get_duration(buffer[pos].time, pkthdr->ts));
+        buffer[pos].duration = get_duration(buffer[pos].time, pkthdr->ts);//get_duration(buffer[pos].time, pkthdr->ts);
+        debug("#### DELETE.%d: packets %d: duration %f",buffer[pos].client_port,buffer[pos].packets,buffer[pos].duration);
         print_conn(buffer[pos]);
         delete_item(client_port);
     }
@@ -203,7 +202,8 @@ int append_item(Ssl_data* data){
     }
 
     buffer[buffer_len-1] = *data;
-    debug("item added buffer_len %d added port %d",buffer_len,buffer[buffer_len-1].client_port);
+    debug("item added buffer_len %d added port %d time %lu",buffer_len,buffer[buffer_len-1].client_port,
+            (buffer[buffer_len-1].time.tv_sec*MILLI + buffer[buffer_len-1].time.tv_usec));
     return OK;
 }
 

@@ -46,5 +46,5 @@ void print_conn(Ssl_data data){
 
     printf("%s.%lu,", time,data.time.tv_usec); // time
     printf("%s,%d,%s,%s,",data.client_ip,data.client_port,data.server_ip,data.SNI); //ip addresses
-    printf("%lu,%d,%lu\n",data.size_in_B,data.packets,data.duration);
+    printf("%lu,%d,%3f\n",data.size_in_B,data.packets,data.duration);
 }
