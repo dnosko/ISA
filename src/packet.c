@@ -28,23 +28,24 @@ char* check_flag(struct tcphdr *tcph){
     return "";
 }
 
-char* get_ip_addr(struct iphdr *iph, char* type) {
-
-    struct sockaddr_in ip_addr;
-
-    memset(&ip_addr, 0, sizeof(ip_addr));
+void get_ip_addr(struct iphdr *iph, char *src, char *dst) {
 
     //inet_ntop(AF_INET6, (void*)(&iph->ip6_src), source_ip, INET6_ADDRSTRLEN)
     // pozri prednasky asi mozno tam bdue nejaky kod na ipv6
     //https://blog.apnic.net/2017/10/24/raw-sockets-ipv6/
     //https://www.winsocketdotnetworkprogramming.com/winsock2programming/winsock2advancedInternet3c.html
+    struct sockaddr_in source, dest;
 
-    if (!strcmp(type,"src"))
-        ip_addr.sin_addr.s_addr = iph->saddr;
-    else if(!strcmp(type,"dst"))
-        ip_addr.sin_addr.s_addr = iph->daddr;
+    memset(&source, 0, sizeof(source));
+    source.sin_addr.s_addr = iph->saddr;
 
-    return inet_ntoa(ip_addr.sin_addr);
+    memset(&dest, 0, sizeof(dest));
+    dest.sin_addr.s_addr = iph->daddr;
+
+    strcpy(src, inet_ntoa(source.sin_addr));
+    strcpy(dst, inet_ntoa(dest.sin_addr));
+    printf("src %s dst %s\n",src,dst);
+
 }
 
 long get_len(u_char* payload, int position){
@@ -53,22 +54,22 @@ long get_len(u_char* payload, int position){
     //printf("get_len 0x%02x%02x\n",payload[position], payload[position + 1]);
     sprintf(hex_str,"0x%02x%02x",payload[position], payload[position + 1]);
     len = strtol(hex_str, NULL, 16);
-    debug("GET_LEN: %ld\n", len);
+    //debug("GET_LEN: %ld\n", len);
     return len;
 }
 
 float get_duration(struct timeval start, struct timeval end){
 
     long milisec_start = start.tv_sec * MILLI + start.tv_usec;
-    debug("milliseconds_start %ld\n", milisec_start);
+    //debug("milliseconds_start %ld\n", milisec_start);
     long milisec_end = end.tv_sec * MILLI + end.tv_usec;
-    debug("milliseconds_end %ld\n", milisec_end);
+    //debug("milliseconds_end %ld\n", milisec_end);
     long milisec = milisec_end - milisec_start;
-    debug("seconds %ld\n",milisec );
+    //debug("seconds %ld\n",milisec );
     float sec_ = (float) milisec;
-    debug("float ??? %f\n",sec_);
+    //debug("float ??? %f\n",sec_);
     float sec = sec_/1000 ;
-    debug("float ok %f\n",sec);
+    //debug("float ok %f\n",sec);
     if (sec < 0)
         sec *= -1;
     return sec;

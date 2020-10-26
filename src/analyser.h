@@ -46,7 +46,7 @@ unsigned buffer_len;
 
 
 //void print_packet(const u_char* packet, unsigned X);
-
+void intHandler(int signum);
 int open_handler(char* interface, char* pcap_file);
 int analyse_file_packets(pcap_t* handler);
 int analyse_interface_packets(pcap_t* handler,bpf_u_int32 pNet);
@@ -57,7 +57,7 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
 void process_client(unsigned short port,const struct pcap_pkthdr* pkthdr,u_char* payload,struct iphdr* iph,struct tcphdr* tcp);
 /* process messages from server */
 void process_server(struct tcphdr* tcp, u_char* payload,const struct pcap_pkthdr* pkthdr);
-void init_item(unsigned short client_port,const struct pcap_pkthdr* pkthdr,struct iphdr *iph,u_char* payload);
+Ssl_data init_item(unsigned short client_port,const struct pcap_pkthdr* pkthdr,struct iphdr *iph,u_char* payload);
 /* finds sni */
 void add_sni(u_char *payload, unsigned short port);
 /* inserts data in buffer */

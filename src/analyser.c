@@ -6,14 +6,16 @@
 
 #include "analyser.h"
 
+/* DOKUMENTACIA spojenie ukoncuje posledny TCp packet, po FIN od serveru
+ *
+ * */
 // SSL vzdy port 443
 // verziu ssl urcuje server
 //TODO <timestamp>,<client ip>,<client port>,<server ip>,<SNI>,<bytes>,<packets>,<duration sec>
 /*TODO
  * IPV6
- * KONTROLA VERZII -> ak nie je podporovana tak skip
+ * KONTROLA VERZII -> ak nie je podporovana tak vypisat ze nie je podporovana na stderr a skip, 1.3 skip
  * VYPISAT NEUKONCENE SPOJENIA ALE IBA AK PRISIEL SERVER_HELLO TAKZE KONTROLA SERVE-hELLO
- * PRI NASILU ZATVORENI UVOLNIT PAMAT, VYPISAT VSETKO
  * KONTROLA CI DANE ROZHRANIE EXISTUJE
  * daj init, delete etc do ineho suboru, plus algoritmus na sorting popr bin strom
 */
@@ -23,16 +25,11 @@
 static volatile int keepRunning = false;
 
 
-void intHandler(int dummy) {
-    keepRunning = true;
-}
-
 int open_handler(char* interface, char* pcap_file) {
     char errbuf[PCAP_ERRBUF_SIZE];
     pcap_t* handler;
     int return_code;
 
-    //signal(SIGINT, intHandler);
 
     //init buffer
     buffer = (Ssl_data*)malloc(sizeof(Ssl_data));
@@ -69,6 +66,7 @@ int open_handler(char* interface, char* pcap_file) {
 
     }
 
+
     return OK;
 }
 
@@ -102,7 +100,7 @@ int ppcap_loop(pcap_t* handler){
     unsigned i,len;
     len = buffer_len;
     while(len != 0) {
-        printf("buffer_len %d\n",buffer_len);
+        //printf("buffer_len %d\n",buffer_len);
         i = len -1;
         buffer[i].duration = (float) -1.0;
         // co je kurva na SNI ??????
@@ -112,7 +110,7 @@ int ppcap_loop(pcap_t* handler){
             print_conn(buffer[i]);
             delete_item(buffer[i].client_port);
         }*/
-        printf("NN\n");
+        //printf("NN\n");
         delete_item(buffer[i].client_port);
         //free(&buffer[i]);
         len--;
@@ -162,7 +160,9 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
 void process_client(unsigned short port,const struct pcap_pkthdr* pkthdr,u_char* payload,struct iphdr* iph,struct tcphdr* tcp){
 
     if (!strcmp(check_flag(tcp),"SYN")) { // add new connection to buffer
-        init_item(port,pkthdr,iph,payload);
+        Ssl_data ssl = init_item(port,pkthdr,iph,payload);
+        //printf("debug %")
+        append_item(&ssl);
     }
     else {
         increment_count(port,payload);
@@ -189,7 +189,7 @@ void process_server(struct tcphdr* tcp, u_char* payload,const struct pcap_pkthdr
     }
 }
 
-void init_item(unsigned short client_port,const struct pcap_pkthdr* pkthdr,struct iphdr *iph, u_char* payload){
+Ssl_data init_item(unsigned short client_port,const struct pcap_pkthdr* pkthdr,struct iphdr *iph, u_char* payload){
 
     Ssl_data ssl_connection;
     ssl_connection.client_port = client_port;
@@ -197,12 +197,14 @@ void init_item(unsigned short client_port,const struct pcap_pkthdr* pkthdr,struc
     ssl_connection.time.tv_usec = pkthdr->ts.tv_usec;
     ssl_connection.packets = 1;
     // get source and destination ip address
-    ssl_connection.client_ip = get_ip_addr(iph,"src");
-    ssl_connection.server_ip = get_ip_addr(iph,"dst");
-
+    char* src = (char*) malloc(sizeof(char)*iph->ihl*4);
+    char *dst = (char*) malloc(sizeof(char)*iph->ihl*4);
+    get_ip_addr(iph,src,dst);
     ssl_connection.size_in_B = get_len(payload,SSL_LEN);
+    ssl_connection.client_ip = src;
+    ssl_connection.server_ip = dst;
 
-    append_item(&ssl_connection);
+    return ssl_connection;
 }
 
 
@@ -214,12 +216,14 @@ void add_sni(u_char *payload, unsigned short port){
     if (pos != -1) {
         //if (sni[0] == '\0') buffer[pos].SNI = "NO SNI"; // kontrola verzie, lebo niekedy su na inej pozicii SNI
         buffer[pos].SNI = sni;
+        printf("SNI %s\n",sni);
     }
 }
 
 int append_item(Ssl_data* data){
     debug("buffer_len %i",buffer_len);
     buffer_len += 1;
+    debug("klient ip %s \n", buffer[buffer_len-1].client_ip);
     buffer = realloc(buffer, buffer_len * sizeof(Ssl_data));
     if (!buffer) {
         err_msg(ERR_MEMORY,"Error while reallocating memory");
@@ -228,6 +232,7 @@ int append_item(Ssl_data* data){
     buffer[buffer_len-1] = *data;
     debug("item added buffer_len %d added port %d time %lu",buffer_len,buffer[buffer_len-1].client_port,
             (buffer[buffer_len-1].time.tv_sec*MILLI + buffer[buffer_len-1].time.tv_usec));
+    debug("klinet ip %s \n", buffer[buffer_len-1].client_ip);
     return OK;
 }
 

@@ -38,7 +38,7 @@ unsigned short get_port(struct tcphdr *tcph,char* type);
 /* returns SYN if SYN flag is set and ACK not, returns FIN if FIN flag is set (client side) and empty string if other*/
 char* check_flag(struct tcphdr *tcph);
 /* returns IP adress, gets source if type = "src", destination if type = "dst" */
-char* get_ip_addr(struct iphdr *iph, char* type);
+void get_ip_addr(struct iphdr *iph, char *src, char *dst);
 /* returns length from ssl header*/
 long get_len(u_char* payload, int position);
 /* returns duration in seconds with precision on milliseconds  */

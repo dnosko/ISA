@@ -44,6 +44,9 @@ void print_conn(Ssl_data data){
     char time[MAX_TIME];
     // yyyy-mm-dd hh:mm:ss.usec
     strftime(time, MAX_TIME-1, "%Y-%m-%d %X", lt);
+    
+    printf("sni %s",data.client_ip);
+    
     printf("%s.%lu,", time,data.time.tv_usec); // time
     printf("%s,%d,%s,%s,",data.client_ip,data.client_port,data.server_ip,data.SNI); //ip addresses
     if (data.duration == -1) printf("%lu,%d,%c\n",data.size_in_B,data.packets,'-');
