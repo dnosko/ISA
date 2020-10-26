@@ -12,7 +12,6 @@ char convert_ascii(unsigned int val) {
     unsigned int decimal = val; //decimal
     if ((32 <= decimal && decimal < 127)) { //printable chars
         sprintf(ascii_val,"%c",val);
-        //debug("val %c\n",val);
         return ascii_val[0];
     }
     return '\0'; //non printable ascii

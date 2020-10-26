@@ -126,6 +126,7 @@ int set_filter(pcap_t* handler,bpf_u_int32 netmask) {
 
     return OK;
 }
+
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet) {
 
     struct iphdr* iph;
@@ -151,7 +152,7 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
         process_server(tcp,payload,pkthdr);
     }
 }
-
+/*SKUSIT TOTO VSETKO PREKOPIROVAT DO SUBORU */
 void process_client(unsigned short port,const struct pcap_pkthdr* pkthdr,u_char* payload,struct iphdr* iph,struct tcphdr* tcp){
 
     if (!strcmp(check_flag(tcp),"SYN")) { // add new connection to buffer
@@ -249,7 +250,7 @@ int find_item(unsigned short port){
 
 int delete_item(int pos){
     debug("deleting.. %d buffer_len %d", pos, buffer_len);
-    
+
     Ssl_data* temp = malloc((buffer_len - 1) * sizeof(Ssl_data)); // allocate an array with a size 1 less than the current one
     if (temp == NULL) { err_msg(ERR_MEMORY,"ERR MEMORY");}
 
