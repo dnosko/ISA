@@ -8,6 +8,16 @@
 #include "error.h"
 
 
+int get_tcphdr_size(const u_char* packet, unsigned iphdrlen){
+    u_char* payload = (u_char *)(packet + ETHERNET_SIZE + iphdrlen);
+    debug("tcpheader %02x ",payload[12]);
+    //char decimal[2];
+    //sprintf(decimal,"%d",payload[12]);
+    //if (payload[12] == 0xa0) return 32;
+
+    return payload[12];
+}
+
 unsigned short get_port(struct tcphdr *tcph,char* type){
     if (!strcmp("src",type))
         return ntohs(tcph->source);
@@ -84,18 +94,24 @@ int get_ext_pos(u_char* payload){
     debug("compr_len %d\n",compr_len);
     int exts_start = compr_pos+compr_len+2; //extentions start at this B
     debug("extentions_start at %d\n",exts_start );
+    int all_ext_len = get_len(payload,exts_start);
+    debug("all_ext_len %d\n",all_ext_len );
     int ext_type_pos = exts_start +2;
     int ext_len_pos = ext_type_pos+2 ;
-    int ext_len;
+    int ext_len = get_len(payload,ext_len_pos);
     //TODO pridat ak extention SNI nie je
+
     while (!(payload[ext_type_pos] == 0x00 && payload[ext_type_pos+1] ==0x00)){
+        //if (ext_len == 0){
+        //    printf("not found");
+        //    return -1;}
         ext_len = get_len(payload,ext_len_pos);
         debug("EXTENTION LEN: %d", ext_len_pos);
         ext_type_pos = ext_len+ext_len_pos+2;
+        printf("extention len %d\n",ext_len);
+        ///all_ext_len = all_ext_len - ext_len;
+        ///printf("ext len total %d\n",all_ext_len);
     }
 
-        printf("found position %d \n",ext_type_pos);
-
-        return (ext_type_pos+SNI_EXT_OFFSET);
-
+    return (ext_type_pos+SNI_EXT_OFFSET);
 }

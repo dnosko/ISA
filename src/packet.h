@@ -35,7 +35,8 @@ typedef struct ssl_data {
     bool server_hello;
 } Ssl_data;
 
-
+/* gets tcp header size*/
+int get_tcphdr_size(const u_char* packet, unsigned iphdrlen);
 /* returns port number, takes tcp header and type="src" for source port and "dst" for destination port */
 unsigned short get_port(struct tcphdr *tcph,char* type);
 /* returns SYN if SYN flag is set and ACK not, returns FIN if FIN flag is set (client side) and empty string if other*/

@@ -38,7 +38,6 @@
 #define HANDSHAKE 0x16
 #define APP_DATA 0x17
 
-#define TCPHDRLEN  32
 
 
 Ssl_data* buffer;

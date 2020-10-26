@@ -39,6 +39,7 @@ char* extract_data(const u_char* packet, unsigned from_B, unsigned len) {
 
 void print_conn(Ssl_data data){
 
+    debug("hii");
     // convert time
     struct tm* lt = localtime(&data.time.tv_sec);
     char time[MAX_TIME];
