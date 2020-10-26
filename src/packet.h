@@ -20,6 +20,8 @@
 #define ETHERNET_SIZE sizeof(struct ethhdr)
 #define SSL_PORT 443
 #define MILLI 1000 // to get milliseconds
+#define CIPHER_LEN 76 //76th and 77th B
+#define SNI_EXT_OFFSET 9 // 9 bytes to get from type of extention to SNI name
 
 typedef struct ssl_data {
     struct timeval time; //start
@@ -33,6 +35,7 @@ typedef struct ssl_data {
     bool server_hello;
 } Ssl_data;
 
+
 /* returns port number, takes tcp header and type="src" for source port and "dst" for destination port */
 unsigned short get_port(struct tcphdr *tcph,char* type);
 /* returns SYN if SYN flag is set and ACK not, returns FIN if FIN flag is set (client side) and empty string if other*/
@@ -40,8 +43,10 @@ char* check_flag(struct tcphdr *tcph);
 /* returns IP adress, gets source if type = "src", destination if type = "dst" */
 void get_ip_addr(struct iphdr *iph, char *src, char *dst);
 /* returns length from ssl header*/
-long get_len(u_char* payload, int position);
+int get_len(u_char* payload, int position);
 /* returns duration in seconds with precision on milliseconds  */
 float get_duration(struct timeval start, struct timeval end);
+/* gets position of SNI extention */
+int get_ext_pos(u_char* payload);
 
 #endif //SSLSNIFF_PACKET_H

@@ -44,18 +44,17 @@ void get_ip_addr(struct iphdr *iph, char *src, char *dst) {
 
     strcpy(src, inet_ntoa(source.sin_addr));
     strcpy(dst, inet_ntoa(dest.sin_addr));
-    printf("src %s dst %s\n",src,dst);
 
 }
 
-long get_len(u_char* payload, int position){
+int get_len(u_char* payload, int position){
     long len = 0;
     char hex_str[7];
-    //printf("get_len 0x%02x%02x\n",payload[position], payload[position + 1]);
+    debug("get_len 0x%02x%02x\n",payload[position], payload[position + 1]);
     sprintf(hex_str,"0x%02x%02x",payload[position], payload[position + 1]);
     len = strtol(hex_str, NULL, 16);
-    //debug("GET_LEN: %ld\n", len);
-    return len;
+    debug("GET_LEN: %ld\n", len);
+    return (int)len;
 }
 
 float get_duration(struct timeval start, struct timeval end){
@@ -73,4 +72,30 @@ float get_duration(struct timeval start, struct timeval end){
     if (sec < 0)
         sec *= -1;
     return sec;
+}
+
+int get_ext_pos(u_char* payload){
+
+    int cipher_len  = get_len(payload,CIPHER_LEN);
+    debug("CIPHERLEN %d\n",cipher_len);
+    int compr_pos = (CIPHER_LEN+1)+cipher_len;
+    debug("compr_pos %d\n",compr_pos);
+    int compr_len = payload[compr_pos+1];
+    debug("compr_len %d\n",compr_len);
+    int exts_start = compr_pos+compr_len+2; //extentions start at this B
+    debug("extentions_start at %d\n",exts_start );
+    int ext_type_pos = exts_start +2;
+    int ext_len_pos = ext_type_pos+2 ;
+    int ext_len;
+    //TODO pridat ak extention SNI nie je
+    while (!(payload[ext_type_pos] == 0x00 && payload[ext_type_pos+1] ==0x00)){
+        ext_len = get_len(payload,ext_len_pos);
+        debug("EXTENTION LEN: %d", ext_len_pos);
+        ext_type_pos = ext_len+ext_len_pos+2;
+    }
+
+        printf("found position %d \n",ext_type_pos);
+
+        return (ext_type_pos+SNI_EXT_OFFSET);
+
 }

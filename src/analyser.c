@@ -211,19 +211,21 @@ Ssl_data init_item(unsigned short client_port,const struct pcap_pkthdr* pkthdr,s
 void add_sni(u_char *payload, unsigned short port){
 
     int pos = find_item(port);
-    int len = (int)get_len(payload,SNI_LEN);
-    char* sni = extract_data(payload,127,len+1);
+    int ext_B = get_ext_pos(payload);
+    printf("ext_B %d\n",ext_B);
+    int len = (int)get_len(payload,ext_B);
+    char* sni = extract_data(payload,ext_B,len+1);
     if (pos != -1) {
         //if (sni[0] == '\0') buffer[pos].SNI = "NO SNI"; // kontrola verzie, lebo niekedy su na inej pozicii SNI
         buffer[pos].SNI = sni;
-        printf("SNI %s\n",sni);
+        debug("SNI %s\n",sni);
     }
 }
 
 int append_item(Ssl_data* data){
     debug("buffer_len %i",buffer_len);
     buffer_len += 1;
-    debug("klient ip %s \n", buffer[buffer_len-1].client_ip);
+    //debug("klient ip %s \n", buffer[buffer_len-1].client_ip);
     buffer = realloc(buffer, buffer_len * sizeof(Ssl_data));
     if (!buffer) {
         err_msg(ERR_MEMORY,"Error while reallocating memory");
@@ -232,7 +234,7 @@ int append_item(Ssl_data* data){
     buffer[buffer_len-1] = *data;
     debug("item added buffer_len %d added port %d time %lu",buffer_len,buffer[buffer_len-1].client_port,
             (buffer[buffer_len-1].time.tv_sec*MILLI + buffer[buffer_len-1].time.tv_usec));
-    debug("klinet ip %s \n", buffer[buffer_len-1].client_ip);
+   // debug("klinet ip %s \n", buffer[buffer_len-1].client_ip);
     return OK;
 }
 
