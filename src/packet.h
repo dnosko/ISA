@@ -53,8 +53,6 @@ int get_len(u_char* payload, int position);
 float get_duration(struct timeval start, struct timeval end);
 /* gets position of SNI extention */
 int get_ext_pos(u_char* payload);
-/*set clientHello to true*/
-void set_clientHello(int pos, Ssl_data* buffer);
 /* adds and finds SNI */
 void add_sni(u_char* payload, int pos, Ssl_data* buffer);
 /* extracts SNI from datagram */

@@ -99,9 +99,8 @@ int ppcap_loop(pcap_t* handler){
     unsigned i;
 
     while(buffer_len != 0) {
-        i = buffer_len -1;
-        delete_item(buffer[i].client_port);
-        buffer_len--;
+        i = buffer_len-1;
+        delete_item(i);
     }
 
     return OK;
@@ -162,34 +161,39 @@ void process_client(unsigned short port,const struct pcap_pkthdr* pkthdr,u_char*
     else {
         int pos = find_item(port);
 
-        if (pos == -1) return;
+        if (pos == NOT_FOUND) return;
 
         if((payload[CONTENT_B] == HANDSHAKE) && (payload[HANDSHAKE_B] == CLIENT_HELLO)) {
-            set_clientHello(pos,buffer);
+            buffer[pos].server_hello = true;
             add_sni(payload,pos,buffer);
         }
-        increment_count(port,payload);
+
+        increment_count(pos,payload);
     }
 }
 
 void process_server(struct tcphdr* tcp, u_char* payload,const struct pcap_pkthdr* pkthdr){
-    unsigned short client_port = get_port(tcp, "dst");
-    // get destination port, check if its in buffer ak nie tak zahod ak je tak:
-    int pos = find_item(client_port);
-    //printf("payload content %02x \n",payload[CONTENT_B]);
+    unsigned short client_port;
+    int pos;
+
+    client_port = get_port(tcp, "dst");
+
+    pos = find_item(client_port);
+    if (pos == NOT_FOUND) return;
+
     if((payload[CONTENT_B] == HANDSHAKE) && (payload[HANDSHAKE_B] == SERVER_HELLO)) {
-        //debug("##############\n");
         buffer[pos].server_hello = true;
     }
-    increment_count(client_port,payload);
 
-    if (buffer[pos].server_hello == true && pos != -1) {
-        if(strcmp(check_flag(tcp),"FIN")) return;
+    increment_count(pos,payload);
+
+    if (buffer[pos].server_hello == true) {
+        if(strcmp(check_flag(tcp),"FIN") != 0) return;
         debug("get_duration %f\n",get_duration(buffer[pos].time, pkthdr->ts));
         buffer[pos].duration = get_duration(buffer[pos].time, pkthdr->ts);//get_duration(buffer[pos].time, pkthdr->ts);
         debug("#### DELETE.%d: packets %d: duration %f",buffer[pos].client_port,buffer[pos].packets,buffer[pos].duration);
         print_conn(buffer[pos]);
-        delete_item(client_port);
+        delete_item(pos);
     }
 }
 
@@ -240,55 +244,52 @@ int find_item(unsigned short port){
         }
     }
     debug("didnt find port %d",port);
-    return -1;
+    return NOT_FOUND;
 }
 
-int delete_item(unsigned short port){
-    debug("deleting.. %d buffer_len %d",port,buffer_len);
-    int position = find_item(port);
+int delete_item(int pos){
+    debug("deleting.. %d buffer_len %d", pos, buffer_len);
 
-    if (position != -1) {
-        Ssl_data* temp = malloc((buffer_len - 1) * sizeof(Ssl_data)); // allocate an array with a size 1 less than the current one
-        if (temp == NULL) { err_msg(ERR_MEMORY,"ERR MEMORY");}
+    if (pos != NOT_FOUND){
+    Ssl_data* temp = malloc((buffer_len - 1) * sizeof(Ssl_data)); // allocate an array with a size 1 less than the current one
+    if (temp == NULL) { err_msg(ERR_MEMORY,"ERR MEMORY");}
 
-        if (position != 0)
-            memcpy(temp, buffer, position * sizeof(Ssl_data)); // copy everything BEFORE the index
+    if (pos != 0)
+        memcpy(temp, buffer, pos * sizeof(Ssl_data)); // copy everything BEFORE the index
 
-        if (position != (buffer_len - 1))
-            memcpy(temp+position, buffer+position+1, (buffer_len - position - 1) * sizeof(Ssl_data));// copy everything AFTER the index
-
+    if (pos != (buffer_len - 1))
+        memcpy(temp + pos, buffer + pos + 1, (buffer_len - pos - 1) * sizeof(Ssl_data));// copy everything AFTER the index
         debug("delete item free %d buffer_len",buffer_len);
-        if (!buffer)
-            free (buffer);
-        buffer = temp;
-        buffer_len--;
-    }
+    if (!buffer)
+        free (buffer);
+
+    buffer = temp;
+    buffer_len--;}
+
     return OK;
 }
 
-void increment_count(unsigned short port, u_char* payload){
+void increment_count(int pos, u_char* payload){
     int content_type = payload[CONTENT_B];
-    int pos = find_item(port);
-    debug("port %d on pos %d",port,pos);
-    if (pos != -1) { //port is in buffer
-        buffer[pos].packets++;
+    debug("port %d on pos %d", pos, pos);
+
+    buffer[pos].packets++;
         //if (buffer[pos].packets >= 4 && buffer[pos].client_hello != true)
         //    {printf("NO SERVER_HELLO DELETE %d\n",port);delete_item(port);}
         //debug("A: %d:%02x",buffer[pos].client_port,content_type);
-        if ((payload[VERSION_B] == 0x03) && ((payload[VERSION_B+1] == 0x03) ||
-              payload[VERSION_B+1] == 0x01)) { //sometimes theres no ssl head
-            //content_type == HANDSHAKE
-            if (content_type == HANDSHAKE || content_type == APP_DATA ||
-                content_type == CIPHER || content_type == ALERT) {
+
+     if ((payload[VERSION_B] == 0x03) && ((payload[VERSION_B+1] == 0x03) ||
+          payload[VERSION_B+1] == 0x01)) { //sometimes theres no ssl head
+         if (content_type == HANDSHAKE || content_type == APP_DATA ||
+             content_type == CIPHER || content_type == ALERT) {
                 //debug("getlen inc %d\n",get_len(payload,SSL_LEN));
                 buffer[pos].size_in_B += get_len(payload,SSL_LEN);
             }
-        }
-    }
+     }
 }
 
 void print_conn(Ssl_data data){
-    
+
     // convert time
     struct tm* lt = localtime(&data.time.tv_sec);
     char time[MAX_TIME];

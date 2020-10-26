@@ -38,6 +38,8 @@
 #define HANDSHAKE 0x16
 #define APP_DATA 0x17
 
+#define NOT_FOUND -1
+
 
 //void print_packet(const u_char* packet, unsigned X);
 void intHandler(int signum);
@@ -56,9 +58,9 @@ Ssl_data init_item(unsigned short client_port, const struct pcap_pkthdr *pkthdr,
 int append_item(Ssl_data* data);
 /* looks for item in buffer based on port, returns NULL if buffer doesn't contain the item, returns position if found the item and -1 if not */
 int find_item(unsigned short port);
-int delete_item(unsigned short port);
+int delete_item(int pos);
 /* increments number of packets in given ssl connection and adds length of bytes from ssl header*/
-void increment_count(unsigned short port,u_char* payload);
+void increment_count(int pos, u_char* payload);
 /* prints connection */
 void print_conn(Ssl_data data);
 

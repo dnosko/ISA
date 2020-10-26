@@ -113,9 +113,6 @@ int get_ext_pos(u_char* payload){
     return (ext_type_pos+SNI_EXT_OFFSET);
 }
 
-void set_clientHello(int pos, Ssl_data* buffer){
-    buffer[pos].client_hello = true;
-}
 
 void add_sni(u_char* payload, int pos, Ssl_data* buffer){
 
