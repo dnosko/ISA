@@ -11,11 +11,10 @@
 int get_tcphdr_size(const u_char* packet, unsigned iphdrlen){
     u_char* payload = (u_char *)(packet + ETHERNET_SIZE + iphdrlen);
     debug("tcpheader %02x ",payload[12]);
-    //char decimal[2];
-    //sprintf(decimal,"%d",payload[12]);
-    //if (payload[12] == 0xa0) return 32;
 
-    return payload[12];
+    if (payload[12] == 0x80) return 32; // when its set to 0x80 header is 32
+
+    return MIN_TCPHDR;
 }
 
 unsigned short get_port(struct tcphdr *tcph,char* type){
