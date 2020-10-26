@@ -219,11 +219,12 @@ Ssl_data init_item(unsigned short client_port, const struct pcap_pkthdr *pkthdr,
 int append_item(Ssl_data* data){
     debug("buffer_len %i",buffer_len);
     buffer_len += 1;
-    //debug("fml %s \n",buffer);
+
     if (!buffer[0].client_ip)
         buffer = malloc(sizeof(Ssl_data));
     else
         buffer = realloc(buffer, buffer_len * sizeof(Ssl_data));
+
     if (!buffer) {
         err_msg(ERR_MEMORY,"Error while reallocating memory");
     }
@@ -231,26 +232,24 @@ int append_item(Ssl_data* data){
     buffer[buffer_len-1] = *data;
     debug("item added buffer_len %d added port %d time %lu",buffer_len,buffer[buffer_len-1].client_port,
             (buffer[buffer_len-1].time.tv_sec*MILLI + buffer[buffer_len-1].time.tv_usec));
-   // debug("klinet ip %s \n", buffer[buffer_len-1].client_ip);
+
     return OK;
 }
 
 int find_item(unsigned short port){
-    debug("buffer_len %d looking for %d",buffer_len, port);
+
     for (unsigned i = 0; i < buffer_len; i++) {
-        //debug("i: %d buffer port %d",i, buffer[i].client_port);
         if (port == buffer[i].client_port){
             return i;
         }
     }
-    debug("didnt find port %d",port);
+
     return NOT_FOUND;
 }
 
 int delete_item(int pos){
     debug("deleting.. %d buffer_len %d", pos, buffer_len);
-
-    if (pos != NOT_FOUND){
+    
     Ssl_data* temp = malloc((buffer_len - 1) * sizeof(Ssl_data)); // allocate an array with a size 1 less than the current one
     if (temp == NULL) { err_msg(ERR_MEMORY,"ERR MEMORY");}
 
@@ -264,7 +263,7 @@ int delete_item(int pos){
         free (buffer);
 
     buffer = temp;
-    buffer_len--;}
+    buffer_len--;
 
     return OK;
 }
