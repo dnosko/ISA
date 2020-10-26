@@ -112,3 +112,41 @@ int get_ext_pos(u_char* payload){
 
     return (ext_type_pos+SNI_EXT_OFFSET);
 }
+
+void set_clientHello(int pos, Ssl_data* buffer){
+    buffer[pos].client_hello = true;
+}
+
+void add_sni(u_char* payload, int pos, Ssl_data* buffer){
+
+    char* sni;
+    int ext_B = get_ext_pos(payload); // get Bth where SNI extention starts
+
+    if (ext_B != -1) {
+        int len = (int)get_len(payload,ext_B); // get length of SNI
+        sni = get_SNI(payload, ext_B,len+1); //extract SNI name
+        buffer[pos].SNI = sni;
+    }
+    else {
+        buffer[pos].SNI = "";
+    }
+}
+
+char* get_SNI(const u_char* packet, unsigned from_B, unsigned len) {
+    char* ascii_str = (char*) malloc(sizeof(char)*len+1);
+    int pos = 0;
+    unsigned end_sni = from_B+len;
+    char ret_val = 0;
+    for(unsigned i = from_B; i < end_sni; i++) {
+        //debug"packet %02X\n", (unsigned int) packet[i]);
+        ret_val = convert_ascii((unsigned int) packet[i]);
+        if (ret_val != '\0')
+            ascii_str[pos] = ret_val;
+        else
+            ascii_str[pos] = '\0';
+        pos++;
+    }
+    ascii_str[len] = '\0';
+    debug("get_SNI %s len: %d pos: %d\n",ascii_str,len,pos);
+    return ascii_str;
+}

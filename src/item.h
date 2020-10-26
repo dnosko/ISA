@@ -4,16 +4,12 @@
  *        Monitoring SSL spojenia
  ****************************************/
 
-#include <zconf.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include "packet.h"
 #include "error.h"
 
-#define MAX_TIME 101
+#ifndef ISA_BUFFER_H
+#define ISA_BUFFER_H
 
-#ifndef SSLSNIFF_FORMAT_H
-#define SSLSNIFF_FORMAT_H
 
-char convert_ascii(unsigned int val);
 
-#endif //SSLSNIFF_FORMAT_H
+#endif //ISA_BUFFER_H

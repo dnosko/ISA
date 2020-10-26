@@ -14,6 +14,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#include "format.h"
+
 #ifndef SSLSNIFF_PACKET_H
 #define SSLSNIFF_PACKET_H
 
@@ -51,5 +53,12 @@ int get_len(u_char* payload, int position);
 float get_duration(struct timeval start, struct timeval end);
 /* gets position of SNI extention */
 int get_ext_pos(u_char* payload);
+/*set clientHello to true*/
+void set_clientHello(int pos, Ssl_data* buffer);
+/* adds and finds SNI */
+void add_sni(u_char* payload, int pos, Ssl_data* buffer);
+/* extracts SNI from datagram */
+char* get_SNI(const u_char* packet, unsigned from_B, unsigned len);
+
 
 #endif //SSLSNIFF_PACKET_H

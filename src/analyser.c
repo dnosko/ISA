@@ -20,9 +20,8 @@
  * daj init, delete etc do ineho suboru, plus algoritmus na sorting popr bin strom
 */
 
-// spojenia ktore neboli ukoncene ak sigint tak vypisat "-"
-
-static volatile int keepRunning = false;
+Ssl_data* buffer;
+unsigned buffer_len;
 
 
 int open_handler(char* interface, char* pcap_file) {
@@ -97,23 +96,12 @@ int ppcap_loop(pcap_t* handler){
         return return_code;
     }
 
-    unsigned i,len;
-    len = buffer_len;
-    while(len != 0) {
-        //printf("buffer_len %d\n",buffer_len);
-        i = len -1;
-        buffer[i].duration = (float) -1.0;
-        // co je kurva na SNI ??????
-        //printf("buffer port %s\n",buffer[i].SNI);
-        /*if (buffer[i].server_hello){
-            printf("NN\n");
-            print_conn(buffer[i]);
-            delete_item(buffer[i].client_port);
-        }*/
-        //printf("NN\n");
+    unsigned i;
+
+    while(buffer_len != 0) {
+        i = buffer_len -1;
         delete_item(buffer[i].client_port);
-        //free(&buffer[i]);
-        len--;
+        buffer_len--;
     }
 
     return OK;
@@ -127,13 +115,13 @@ int set_filter(pcap_t* handler,bpf_u_int32 netmask) {
     {
         perror("ERR:");
         printf("\npcap_compile() failed\n");
-        //pcap_close(handler);
+        pcap_close(handler);
         return ERR_PCAP;
     }
     if(pcap_setfilter(handler, &fp) == -1)
     {
         printf("\npcap_setfilter() failed\n");
-        //pcap_close(handler);
+        pcap_close(handler);
         return ERR_PCAP;
     }
 
@@ -141,21 +129,26 @@ int set_filter(pcap_t* handler,bpf_u_int32 netmask) {
 }
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet) {
 
-    //	IP header -> X + SIZE_ETHERNET
-    struct iphdr* iph = (struct iphdr*)(packet + ETHERNET_SIZE);
-    unsigned short iphdrlen = iph->ihl*4;
-    struct tcphdr* tcp = (struct tcphdr*)(packet + iphdrlen + ETHERNET_SIZE);
+    struct iphdr* iph;
+    unsigned short iphdrlen;
+    struct tcphdr* tcp;
     u_char *payload; /* Packet payload */
-    int tcpheader_size = get_tcphdr_size(packet,iphdrlen);
+    int tcpheader_size;
+    unsigned short src_port;
+
+    iph = (struct iphdr*)(packet + ETHERNET_SIZE);
+    iphdrlen = iph->ihl*4;
+    tcp = (struct tcphdr*)(packet + iphdrlen + ETHERNET_SIZE);
+    tcpheader_size = get_tcphdr_size(packet,iphdrlen);
 
     payload = (u_char *)(packet + ETHERNET_SIZE + iphdrlen + tcpheader_size ); // this is ssl payload
 
-    unsigned short src_port = get_port(tcp, "src"); // potrebujem obidva porty skontrolovat vzdy ten co nie je 443
+    src_port = get_port(tcp, "src");
 
     if (src_port != SSL_PORT){
         process_client(src_port,pkthdr,payload,iph,tcp);
     }
-    else { // source je SSL
+    else { // source is SSL
         process_server(tcp,payload,pkthdr);
     }
 }
@@ -163,18 +156,17 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
 void process_client(unsigned short port,const struct pcap_pkthdr* pkthdr,u_char* payload,struct iphdr* iph,struct tcphdr* tcp){
 
     if (!strcmp(check_flag(tcp),"SYN")) { // add new connection to buffer
-        Ssl_data ssl = init_item(port,pkthdr,iph,payload);
-        //printf("debug %")
+        Ssl_data ssl = init_item(port, pkthdr, iph);
         append_item(&ssl);
     }
     else {
-        //TODO sem dat find_item a predavat iba position nie port
         int pos = find_item(port);
+
         if (pos == -1) return;
-        //printf("port %d : payload content %02x %02x %02x \n",port, payload[CONTENT_B], payload[CONTENT_B+1], payload[CONTENT_B+2]);
+
         if((payload[CONTENT_B] == HANDSHAKE) && (payload[HANDSHAKE_B] == CLIENT_HELLO)) {
-            set_clientHello(port);
-            add_sni(payload,port);
+            set_clientHello(pos,buffer);
+            add_sni(payload,pos,buffer);
         }
         increment_count(port,payload);
     }
@@ -201,12 +193,7 @@ void process_server(struct tcphdr* tcp, u_char* payload,const struct pcap_pkthdr
     }
 }
 
-void set_clientHello(unsigned short port){
-    int pos = find_item(port);
-    buffer[pos].client_hello = true;
-}
-
-Ssl_data init_item(unsigned short client_port,const struct pcap_pkthdr* pkthdr,struct iphdr *iph, u_char* payload){
+Ssl_data init_item(unsigned short client_port, const struct pcap_pkthdr *pkthdr, struct iphdr *iph) {
 
     Ssl_data ssl_connection;
     ssl_connection.client_port = client_port;
@@ -224,26 +211,6 @@ Ssl_data init_item(unsigned short client_port,const struct pcap_pkthdr* pkthdr,s
     return ssl_connection;
 }
 
-
-void add_sni(u_char *payload, unsigned short port){
-
-    int pos = find_item(port);
-    int ext_B = get_ext_pos(payload);
-    //debug("EX_B %d \n",ext_B);
-    char* sni;
-    if (pos != -1) {
-        if (ext_B != -1) {
-            int len = (int)get_len(payload,ext_B);
-            sni = extract_data(payload,ext_B,len+1);
-            buffer[pos].SNI = sni;
-        }
-        else {
-            buffer[pos].SNI = "NO SNI";
-        }
-
-      //  debug("SNI %s\n",sni);
-    }
-}
 
 int append_item(Ssl_data* data){
     debug("buffer_len %i",buffer_len);
@@ -318,6 +285,20 @@ void increment_count(unsigned short port, u_char* payload){
             }
         }
     }
+}
+
+void print_conn(Ssl_data data){
+    
+    // convert time
+    struct tm* lt = localtime(&data.time.tv_sec);
+    char time[MAX_TIME];
+    // yyyy-mm-dd hh:mm:ss.usec
+    strftime(time, MAX_TIME-1, "%Y-%m-%d %X", lt);
+
+    printf("%s.%lu,", time,data.time.tv_usec); // time
+    printf("%s,%d,%s,%s,",data.client_ip,data.client_port,data.server_ip,data.SNI); //ip addresses
+    if (data.duration == -1) printf("%lu,%d,%c\n",data.size_in_B,data.packets,'-');
+    else printf("%lu,%d,%f\n",data.size_in_B,data.packets,data.duration);
 }
 
 
