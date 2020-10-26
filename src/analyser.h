@@ -35,6 +35,8 @@
 #define HANDSHAKE_B 5 // handshake type at 5th B
 #define CLIENT_HELLO 0x01 //starts at 6th B
 #define SERVER_HELLO 0x02
+#define CIPHER 0x14
+#define ALERT 0x15
 #define HANDSHAKE 0x16
 #define APP_DATA 0x17
 
@@ -56,6 +58,7 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
 void process_client(unsigned short port,const struct pcap_pkthdr* pkthdr,u_char* payload,struct iphdr* iph,struct tcphdr* tcp);
 /* process messages from server */
 void process_server(struct tcphdr* tcp, u_char* payload,const struct pcap_pkthdr* pkthdr);
+void set_clientHello(unsigned short port);
 Ssl_data init_item(unsigned short client_port,const struct pcap_pkthdr* pkthdr,struct iphdr *iph,u_char* payload);
 /* finds sni */
 void add_sni(u_char *payload, unsigned short port);

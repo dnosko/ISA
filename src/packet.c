@@ -11,6 +11,7 @@
 int get_tcphdr_size(const u_char* packet, unsigned iphdrlen){
     u_char* payload = (u_char *)(packet + ETHERNET_SIZE + iphdrlen);
     debug("tcpheader %02x ",payload[12]);
+    //podla options v tcp packete spracovat jeden za druhym
 
     if (payload[12] == 0x80) return 32; // when its set to 0x80 header is 32
 
@@ -80,10 +81,11 @@ float get_duration(struct timeval start, struct timeval end){
     //debug("float ok %f\n",sec);
     if (sec < 0)
         sec *= -1;
-    return sec;
+    return sec/MILLI;
 }
 
 int get_ext_pos(u_char* payload){
+
 
     int cipher_len  = get_len(payload,CIPHER_LEN);
     debug("CIPHERLEN %d\n",cipher_len);
@@ -99,17 +101,13 @@ int get_ext_pos(u_char* payload){
     int ext_len_pos = ext_type_pos+2 ;
     int ext_len = get_len(payload,ext_len_pos);
     //TODO pridat ak extention SNI nie je
+    int count = 0 ; // max  loops, SNi is always first or second extention
 
     while (!(payload[ext_type_pos] == 0x00 && payload[ext_type_pos+1] ==0x00)){
-        //if (ext_len == 0){
-        //    printf("not found");
-        //    return -1;}
         ext_len = get_len(payload,ext_len_pos);
-        debug("EXTENTION LEN: %d", ext_len_pos);
         ext_type_pos = ext_len+ext_len_pos+2;
-        printf("extention len %d\n",ext_len);
-        ///all_ext_len = all_ext_len - ext_len;
-        ///printf("ext len total %d\n",all_ext_len);
+        count++;
+        if (count == 2) return -1;
     }
 
     return (ext_type_pos+SNI_EXT_OFFSET);

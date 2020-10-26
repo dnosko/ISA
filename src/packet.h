@@ -34,6 +34,7 @@ typedef struct ssl_data {
     unsigned packets;
     float duration; //last - first packet
     bool server_hello;
+    bool client_hello; // used to remove not ssl packets from buffer
 } Ssl_data;
 
 /* gets tcp header size*/

@@ -104,7 +104,7 @@ int ppcap_loop(pcap_t* handler){
         i = len -1;
         buffer[i].duration = (float) -1.0;
         // co je kurva na SNI ??????
-        // printf("buffer port %s\n",buffer[i].SNI);
+        //printf("buffer port %s\n",buffer[i].SNI);
         /*if (buffer[i].server_hello){
             printf("NN\n");
             print_conn(buffer[i]);
@@ -168,11 +168,15 @@ void process_client(unsigned short port,const struct pcap_pkthdr* pkthdr,u_char*
         append_item(&ssl);
     }
     else {
-        increment_count(port,payload);
+        //TODO sem dat find_item a predavat iba position nie port
+        int pos = find_item(port);
+        if (pos == -1) return;
         //printf("port %d : payload content %02x %02x %02x \n",port, payload[CONTENT_B], payload[CONTENT_B+1], payload[CONTENT_B+2]);
         if((payload[CONTENT_B] == HANDSHAKE) && (payload[HANDSHAKE_B] == CLIENT_HELLO)) {
+            set_clientHello(port);
             add_sni(payload,port);
         }
+        increment_count(port,payload);
     }
 }
 
@@ -182,7 +186,7 @@ void process_server(struct tcphdr* tcp, u_char* payload,const struct pcap_pkthdr
     int pos = find_item(client_port);
     //printf("payload content %02x \n",payload[CONTENT_B]);
     if((payload[CONTENT_B] == HANDSHAKE) && (payload[HANDSHAKE_B] == SERVER_HELLO)) {
-        printf("##############\n");
+        //debug("##############\n");
         buffer[pos].server_hello = true;
     }
     increment_count(client_port,payload);
@@ -193,9 +197,13 @@ void process_server(struct tcphdr* tcp, u_char* payload,const struct pcap_pkthdr
         buffer[pos].duration = get_duration(buffer[pos].time, pkthdr->ts);//get_duration(buffer[pos].time, pkthdr->ts);
         debug("#### DELETE.%d: packets %d: duration %f",buffer[pos].client_port,buffer[pos].packets,buffer[pos].duration);
         print_conn(buffer[pos]);
-        debug("hereee");
         delete_item(client_port);
     }
+}
+
+void set_clientHello(unsigned short port){
+    int pos = find_item(port);
+    buffer[pos].client_hello = true;
 }
 
 Ssl_data init_item(unsigned short client_port,const struct pcap_pkthdr* pkthdr,struct iphdr *iph, u_char* payload){
@@ -209,7 +217,7 @@ Ssl_data init_item(unsigned short client_port,const struct pcap_pkthdr* pkthdr,s
     char* src = (char*) malloc(sizeof(char)*iph->ihl*4);
     char *dst = (char*) malloc(sizeof(char)*iph->ihl*4);
     get_ip_addr(iph,src,dst);
-    ssl_connection.size_in_B = get_len(payload,SSL_LEN);
+    ssl_connection.size_in_B = 0;
     ssl_connection.client_ip = src;
     ssl_connection.server_ip = dst;
 
@@ -219,24 +227,32 @@ Ssl_data init_item(unsigned short client_port,const struct pcap_pkthdr* pkthdr,s
 
 void add_sni(u_char *payload, unsigned short port){
 
-    printf("halo\n");
     int pos = find_item(port);
     int ext_B = get_ext_pos(payload);
-    printf("EX_B %d \n",ext_B);
-    int len = (int)get_len(payload,ext_B);
-    char* sni = extract_data(payload,ext_B,len+1);
+    //debug("EX_B %d \n",ext_B);
+    char* sni;
     if (pos != -1) {
-        //if (sni[0] == '\0') buffer[pos].SNI = "NO SNI"; // kontrola verzie, lebo niekedy su na inej pozicii SNI
-        buffer[pos].SNI = sni;
-        debug("SNI %s\n",sni);
+        if (ext_B != -1) {
+            int len = (int)get_len(payload,ext_B);
+            sni = extract_data(payload,ext_B,len+1);
+            buffer[pos].SNI = sni;
+        }
+        else {
+            buffer[pos].SNI = "NO SNI";
+        }
+
+      //  debug("SNI %s\n",sni);
     }
 }
 
 int append_item(Ssl_data* data){
     debug("buffer_len %i",buffer_len);
     buffer_len += 1;
-    //debug("klient ip %s \n", buffer[buffer_len-1].client_ip);
-    buffer = realloc(buffer, buffer_len * sizeof(Ssl_data));
+    //debug("fml %s \n",buffer);
+    if (!buffer[0].client_ip)
+        buffer = malloc(sizeof(Ssl_data));
+    else
+        buffer = realloc(buffer, buffer_len * sizeof(Ssl_data));
     if (!buffer) {
         err_msg(ERR_MEMORY,"Error while reallocating memory");
     }
@@ -251,7 +267,7 @@ int append_item(Ssl_data* data){
 int find_item(unsigned short port){
     debug("buffer_len %d looking for %d",buffer_len, port);
     for (unsigned i = 0; i < buffer_len; i++) {
-        debug("i: %d buffer port %d",i, buffer[i].client_port);
+        //debug("i: %d buffer port %d",i, buffer[i].client_port);
         if (port == buffer[i].client_port){
             return i;
         }
@@ -263,10 +279,10 @@ int find_item(unsigned short port){
 int delete_item(unsigned short port){
     debug("deleting.. %d buffer_len %d",port,buffer_len);
     int position = find_item(port);
-    debug("position %d",position);
+
     if (position != -1) {
         Ssl_data* temp = malloc((buffer_len - 1) * sizeof(Ssl_data)); // allocate an array with a size 1 less than the current one
-        if (temp == NULL) { return ERR_MEMORY;}
+        if (temp == NULL) { err_msg(ERR_MEMORY,"ERR MEMORY");}
 
         if (position != 0)
             memcpy(temp, buffer, position * sizeof(Ssl_data)); // copy everything BEFORE the index
@@ -275,7 +291,8 @@ int delete_item(unsigned short port){
             memcpy(temp+position, buffer+position+1, (buffer_len - position - 1) * sizeof(Ssl_data));// copy everything AFTER the index
 
         debug("delete item free %d buffer_len",buffer_len);
-        free (buffer);
+        if (!buffer)
+            free (buffer);
         buffer = temp;
         buffer_len--;
     }
@@ -288,14 +305,19 @@ void increment_count(unsigned short port, u_char* payload){
     debug("port %d on pos %d",port,pos);
     if (pos != -1) { //port is in buffer
         buffer[pos].packets++;
-        debug("A: %d: %d",buffer[pos].client_port, buffer[pos].packets);
-        //if (payload[0] != 0){ //sometimes theres no ssl head
-            if (content_type == HANDSHAKE || content_type == APP_DATA) {
+        //if (buffer[pos].packets >= 4 && buffer[pos].client_hello != true)
+        //    {printf("NO SERVER_HELLO DELETE %d\n",port);delete_item(port);}
+        //debug("A: %d:%02x",buffer[pos].client_port,content_type);
+        if ((payload[VERSION_B] == 0x03) && ((payload[VERSION_B+1] == 0x03) ||
+              payload[VERSION_B+1] == 0x01)) { //sometimes theres no ssl head
+            //content_type == HANDSHAKE
+            if (content_type == HANDSHAKE || content_type == APP_DATA ||
+                content_type == CIPHER || content_type == ALERT) {
+                //debug("getlen inc %d\n",get_len(payload,SSL_LEN));
                 buffer[pos].size_in_B += get_len(payload,SSL_LEN);
             }
-        //}
+        }
     }
-    debug("hm");
 }
 
 
