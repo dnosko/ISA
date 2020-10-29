@@ -30,17 +30,14 @@ int parse_arg(int argc, char **argv, char** interface, char** in_file){
         switch(opt)
         {
             case 'i':
-                debug("option: %c", opt);
-                debug("interface: %s", optarg);
                 *interface = optarg;
                 break;
             case 'r':
                 debug("option: %c", opt);
                 debug("filename: %s", optarg);
-
                 /*  check extension  */
                 const char *dot = strrchr(optarg,'.');
-                debug("extension: %s", dot);
+
                 if(!dot || dot == optarg || strcmp(dot,".pcapng") != 0) {
                     err_msg(ERR_FILE,"Extension must be pcapng");
                 }
@@ -50,14 +47,13 @@ int parse_arg(int argc, char **argv, char** interface, char** in_file){
             case ':':
                 err_msg(ERR_ARG,"Option needs value.");
             default:
-                //err_msg(ERR_ARG,"Unknown option: %c", optopt);
-                break;
+                printf("Usage: -i interface -r file\n");
+                err_msg(ERR_ARG,"Unknown option: %c", optopt);
         }
 
     }
 
     if (optind != argc) {
-        debug("%d",optind);
         err_msg(ERR_ARG,"Extra arguments!");
     }
 

@@ -74,37 +74,32 @@ void get_ipv6_addr(struct ip6_hdr *iphdr, char *src, char *dst){
 int get_len(u_char* payload, int position){
     long len = 0;
     char hex_str[7];
-    debug("get_len 0x%02x%02x\n",payload[position], payload[position + 1]);
+ //debug("get_len 0x%02x%02x\n",payload[position], payload[position + 1]);
     sprintf(hex_str,"0x%02x%02x",payload[position], payload[position + 1]);
     len = strtol(hex_str, NULL, 16);
-    debug("GET_LEN: %ld\n", len);
+
     return (int) len;
 }
 
-//TODO UPRAVIT
+
 float get_duration(struct timeval start, struct timeval end){
 
     long milisec_start = start.tv_sec * MILLI + start.tv_usec;
-    //debug("milliseconds_start %ld\n", milisec_start);
     long milisec_end = end.tv_sec * MILLI + end.tv_usec;
-    //debug("milliseconds_end %ld\n", milisec_end);
     long milisec = milisec_end - milisec_start;
-    //debug("seconds %ld\n",milisec );
     float sec_ = (float) milisec;
-    //debug("float ??? %f\n",sec_);
     float sec = sec_/1000 ;
-    //debug("float ok %f\n",sec);
+
     if (sec < 0)
         sec *= -1;
     return sec/MILLI;
 }
 
-// TODO upravit
 int get_ext_pos(u_char* payload){
 
 
     int cipher_len,compr_pos,compr_len,exts_start,ext_type_pos,ext_len_pos,ext_len;
-    int count = 0;// max  loops, SNi is always first or second extention
+    int count = 0;// max  loops, SNi is always first or second extension
 
     cipher_len  = get_len(payload,CIPHER_LEN);
 
@@ -131,8 +126,8 @@ int get_ext_pos(u_char* payload){
 void add_sni(u_char* payload, int pos, Ssl_data* buffer){
 
     char* sni;
-    int ext_B = get_ext_pos(payload); // get Bth where SNI extention starts
-    debug("ADD SNI %d, ext_b %d\n",pos,ext_B);
+    int ext_B = get_ext_pos(payload); // get Bth where SNI extension starts
+
     if (ext_B != -1) {
         int len = (int)get_len(payload,ext_B); // get length of SNI
         sni = get_SNI(payload, ext_B,len+1); //extract SNI name
@@ -153,8 +148,7 @@ char* get_SNI(const u_char* packet, unsigned from_B, unsigned len) {
     ascii_str = (char*) malloc(sizeof(char)*len+1);
     pos = 0;
     end_sni = from_B+len;
-    ret_val = 0;
-    debug("GETTING SNI from %d, len %d\n",from_B,len);
+
     for(unsigned i = from_B; i < end_sni; i++) {
         //debug("packet %02X\n", (unsigned int) packet[i]);
         ret_val = convert_ascii((unsigned int) packet[i]);
@@ -165,6 +159,19 @@ char* get_SNI(const u_char* packet, unsigned from_B, unsigned len) {
         pos++;
     }
     ascii_str[len] = '\0';
-    debug("get_SNI %s len: %d pos: %d\n",ascii_str,len,pos);
+
     return ascii_str;
+}
+
+void print_conn(Ssl_data data){
+
+    // convert time
+    struct tm* lt = localtime(&data.time.tv_sec);
+    char time[MAX_TIME];
+    // yyyy-mm-dd hh:mm:ss.usec
+    strftime(time, MAX_TIME-1, "%Y-%m-%d %X", lt);
+
+    printf("%s.%06ld,", time,data.time.tv_usec); // time
+    printf("%s,%d,%s,%s,",data.client_ip,data.client_port,data.server_ip,data.SNI); //ip addresses
+    printf("%lu,%d,%f\n",data.size_in_B,data.packets,data.duration);
 }

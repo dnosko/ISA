@@ -13,6 +13,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
+#include <time.h>
 #include <stdbool.h>
 
 #include "format.h"
@@ -21,7 +22,6 @@
 #define SSLSNIFF_PACKET_H
 
 #define ETHERNET_SIZE sizeof(struct ethhdr)
-#define SSL_PORT 443
 #define MILLI 1000 // to get milliseconds
 #define CIPHER_LEN 76 //76th and 77th B
 #define SNI_EXT_OFFSET 9 // 9 bytes to get from type of extention to SNI name
@@ -66,6 +66,7 @@ int get_ext_pos(u_char* payload);
 void add_sni(u_char* payload, int pos, Ssl_data* buffer);
 /* extracts SNI from datagram */
 char* get_SNI(const u_char* packet, unsigned from_B, unsigned len);
-
+/* prints connection */
+void print_conn(Ssl_data data);
 
 #endif //SSLSNIFF_PACKET_H

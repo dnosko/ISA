@@ -194,27 +194,20 @@ void process_client(unsigned short src_port, unsigned short dst_port, u_char *pa
             buffer[pos].server_hello = true;
             add_sni(payload,pos,buffer);
         }
-        debug("CLIENT INCRTEMENT \n");
+
         increment_count(pos,payload);
         if (!strcmp(flag,"FIN")){
-            if (buffer[pos].server_hello == true) {
-                debug("get_duration %f\n",get_duration(buffer[pos].time, pkthdr->ts));
-                buffer[pos].duration = get_duration(buffer[pos].time, pkthdr->ts);//get_duration(buffer[pos].time, pkthdr->ts);
-                debug("#### DELETE.%d: packets %d: duration %f",buffer[pos].client_port,buffer[pos].packets,buffer[pos].duration);
-                print_conn(buffer[pos]);
-                debug("PRINTED");
-                delete_item(pos);
-            }
+            finish(pos,pkthdr->ts);
         }
     }
 }
 
 void process_server(struct tcphdr *tcp, u_char *payload) {
+
     unsigned short client_port;
     int pos;
 
     client_port = get_port(tcp, "dst");
-    debug("CLIENT PORT %d\n",client_port);
 
     pos = find_item(client_port);
     if (pos == NOT_FOUND) return;
@@ -222,12 +215,11 @@ void process_server(struct tcphdr *tcp, u_char *payload) {
     if((payload[CONTENT_B] == HANDSHAKE) && (payload[HANDSHAKE_B] == SERVER_HELLO)) {
         buffer[pos].server_hello = true;
     }
-    debug("SERVER INCRTEMENT \n");
+
     increment_count(pos,payload);
 }
 
-Ssl_data
-init_item(unsigned short client_port, unsigned short server_port, Ip_addr *ip, const struct pcap_pkthdr *pkthdr) {
+Ssl_data init_item(unsigned short client_port, unsigned short server_port, Ip_addr *ip, const struct pcap_pkthdr *pkthdr) {
 
     Ssl_data ssl_connection;
     ssl_connection.client_port = client_port;
@@ -244,9 +236,17 @@ init_item(unsigned short client_port, unsigned short server_port, Ip_addr *ip, c
     return ssl_connection;
 }
 
+void finish(unsigned pos, struct timeval ts){
+
+    if (buffer[pos].server_hello == true) {
+        buffer[pos].duration = get_duration(buffer[pos].time,ts);//get_duration(buffer[pos].time, pkthdr->ts);
+        print_conn(buffer[pos]);
+        delete_item(pos);
+    }
+}
 
 int append_item(Ssl_data* data){
-    debug("buffer_len %i",buffer_len);
+
     buffer_len += 1;
 
     if (!buffer[0].client_ip)
@@ -259,8 +259,6 @@ int append_item(Ssl_data* data){
     }
 
     buffer[buffer_len-1] = *data;
-    debug("item added buffer_len %d added port %d time %lu",buffer_len,buffer[buffer_len-1].client_port,
-            (buffer[buffer_len-1].time.tv_sec*MILLI + buffer[buffer_len-1].time.tv_usec));
 
     return OK;
 }
@@ -277,7 +275,6 @@ int find_item(unsigned short port){
 }
 
 int delete_item(int pos){
-    debug("deleting.. %d buffer_len %d", pos, buffer_len);
 
     Ssl_data* temp = malloc((buffer_len - 1) * sizeof(Ssl_data)); // allocate an array with a size 1 less than the current one
     if (temp == NULL) { err_msg(ERR_MEMORY,"ERR MEMORY");}
@@ -287,7 +284,7 @@ int delete_item(int pos){
 
     if (pos != (buffer_len - 1))
         memcpy(temp + pos, buffer + pos + 1, (buffer_len - pos - 1) * sizeof(Ssl_data));// copy everything AFTER the index
-        debug("delete item free %d buffer_len",buffer_len);
+
     if (!buffer)
         free (buffer);
 
@@ -299,12 +296,8 @@ int delete_item(int pos){
 
 void increment_count(int pos, u_char* payload){
     int content_type = payload[CONTENT_B];
-    debug("port %d on pos %d", buffer[pos].client_port, pos);
 
     buffer[pos].packets++;
-    debug("buffer packets %d\n",buffer[pos].packets);
-    debug("payload %0x %0x\n",payload[VERSION_B],payload[VERSION_B+1]);
-    debug("content %0x \n",content_type);
 
      if ((payload[VERSION_B] == 0x03) && ((payload[VERSION_B+1] == 0x03) ||
           payload[VERSION_B+1] == 0x01)) { //sometimes theres no ssl head
@@ -316,19 +309,5 @@ void increment_count(int pos, u_char* payload){
      }
 }
 
-void print_conn(Ssl_data data){
-
-
-    // convert time
-    struct tm* lt = localtime(&data.time.tv_sec);
-    char time[MAX_TIME];
-    // yyyy-mm-dd hh:mm:ss.usec
-    strftime(time, MAX_TIME-1, "%Y-%m-%d %X", lt);
-
-    printf("%s.%06ld,", time,data.time.tv_usec); // time
-    printf("%s,%d,%s,%s,",data.client_ip,data.client_port,data.server_ip,data.SNI); //ip addresses
-    if (data.duration == -1) printf("%lu,%d,%c\n",data.size_in_B,data.packets,'-');
-    else printf("%lu,%d,%f\n",data.size_in_B,data.packets,data.duration);
-}
 
 

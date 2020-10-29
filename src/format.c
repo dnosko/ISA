@@ -4,7 +4,6 @@
  *        Monitoring SSL spojenia
  ****************************************/
 
-#include <time.h>
 #include "format.h"
 
 char convert_ascii(unsigned int val) {
