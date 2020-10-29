@@ -4,6 +4,7 @@
  *        Monitoring SSL spojenia
  ****************************************/
 
+#include <netinet/ip6.h>
 #include "analyser.h"
 
 /* DOKUMENTACIA spojenie ukoncuje posledny TCp packet, po FIN od serveru
@@ -130,14 +131,25 @@ int set_filter(pcap_t* handler,bpf_u_int32 netmask) {
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet) {
 
     struct iphdr* iph;
+    struct ip6_hdr* ip6_hdr;
     unsigned short iphdrlen;
     struct tcphdr* tcp;
     u_char *payload; /* Packet payload */
     int tcpheader_size;
     unsigned short src_port;
+    int ip_version;
 
-    iph = (struct iphdr*)(packet + ETHERNET_SIZE);
-    iphdrlen = iph->ihl*4;
+    ip_version = get_ip_version(packet);
+
+    if (ip_version == 6) { //ipv6
+        ip6_hdr = (struct ip6_hdr *)(packet + ETHERNET_SIZE);
+        iphdrlen = IPv6_HDR;
+    }
+    else { // ipv4
+        iph = (struct iphdr*)(packet + ETHERNET_SIZE);
+        iphdrlen = iph->ihl*4;
+    }
+
     tcp = (struct tcphdr*)(packet + iphdrlen + ETHERNET_SIZE);
     tcpheader_size = get_tcphdr_size(packet,iphdrlen);
 

@@ -37,6 +37,7 @@
 #define ALERT 0x15
 #define HANDSHAKE 0x16
 #define APP_DATA 0x17
+#define IPv6_HDR 40
 
 #define NOT_FOUND -1
 
