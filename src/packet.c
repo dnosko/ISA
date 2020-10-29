@@ -18,8 +18,8 @@ int get_ip_version(const u_char * packet){
 
 int get_tcphdr_size(const u_char* packet, unsigned iphdrlen){
     u_char* payload = (u_char *)(packet + ETHERNET_SIZE + iphdrlen);
-    debug("tcpheader %02x ",payload[12]);
-    //podla options v tcp packete spracovat jeden za druhym asi
+
+    //TODO podla options v tcp packete spracovat jeden za druhym asi
 
     if (payload[12] == 0x80) return 32; // when its set to 0x80 header is 32
 

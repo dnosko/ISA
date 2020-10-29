@@ -60,7 +60,7 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
 /* process messages from client, port = client's port*/
 void process_client(unsigned short port, const struct pcap_pkthdr* pkthdr, u_char* payload, Ip_addr *ip, struct tcphdr* tcp);
 /* process messages from server */
-void process_server(struct tcphdr* tcp, u_char* payload,const struct pcap_pkthdr* pkthdr);
+void process_server(struct tcphdr *tcp, u_char *payload);
 Ssl_data init_item(unsigned short client_port, const struct pcap_pkthdr *pkthdr, Ip_addr *ip);
 /* inserts data in buffer */
 int append_item(Ssl_data* data);

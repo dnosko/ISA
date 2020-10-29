@@ -7,7 +7,7 @@
 #include <netinet/ip6.h>
 #include "analyser.h"
 
-/* DOKUMENTACIA ukoncenie FIN OD KLIENTA
+/* DOKUMENTACIA ukoncenie ked pride FIN OD KLIENTA
  *
  * */
 // SSL vzdy port 443
@@ -135,7 +135,7 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     struct tcphdr* tcp;
     u_char *payload; /* Packet payload */
     int tcpheader_size;
-    unsigned short src_port;
+    unsigned short src_port,dst_port;
     int ip_version;
     Ip_addr ip;
 
@@ -164,13 +164,13 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     payload = (u_char *)(packet + ETHERNET_SIZE + iphdrlen + tcpheader_size ); // this is ssl payload
 
     src_port = get_port(tcp, "src");
-    debug("PORT %d\n",src_port);
+    dst_port = get_port(tcp,"dst");
 
     if (src_port != SSL_PORT){
         process_client(src_port,pkthdr,payload,&ip,tcp);
     }
     else { // source is SSL
-        process_server(tcp,payload,pkthdr);
+        process_server(tcp, payload);
     }
 }
 /*TODO SKUSIT TOTO VSETKO PREKOPIROVAT DO SUBORU */
@@ -190,25 +190,27 @@ void process_client(unsigned short port, const struct pcap_pkthdr* pkthdr, u_cha
             buffer[pos].server_hello = true;
             add_sni(payload,pos,buffer);
         }
-
+        debug("CLIENT INCRTEMENT \n");
         increment_count(pos,payload);
-        if (buffer[pos].server_hello == true) {
-            if(strcmp(flag,"FIN") != 0) return;
-            debug("get_duration %f\n",get_duration(buffer[pos].time, pkthdr->ts));
-            buffer[pos].duration = get_duration(buffer[pos].time, pkthdr->ts);//get_duration(buffer[pos].time, pkthdr->ts);
-            debug("#### DELETE.%d: packets %d: duration %f",buffer[pos].client_port,buffer[pos].packets,buffer[pos].duration);
-            print_conn(buffer[pos]);
-            debug("PRINTED");
-            delete_item(pos);
+        if (!strcmp(flag,"FIN")){
+            if (buffer[pos].server_hello == true) {
+                debug("get_duration %f\n",get_duration(buffer[pos].time, pkthdr->ts));
+                buffer[pos].duration = get_duration(buffer[pos].time, pkthdr->ts);//get_duration(buffer[pos].time, pkthdr->ts);
+                debug("#### DELETE.%d: packets %d: duration %f",buffer[pos].client_port,buffer[pos].packets,buffer[pos].duration);
+                print_conn(buffer[pos]);
+                debug("PRINTED");
+                delete_item(pos);
+            }
         }
     }
 }
 
-void process_server(struct tcphdr* tcp, u_char* payload,const struct pcap_pkthdr* pkthdr){
+void process_server(struct tcphdr *tcp, u_char *payload) {
     unsigned short client_port;
     int pos;
 
     client_port = get_port(tcp, "dst");
+    debug("CLIENT PORT %d\n",client_port);
 
     pos = find_item(client_port);
     if (pos == NOT_FOUND) return;
@@ -216,7 +218,7 @@ void process_server(struct tcphdr* tcp, u_char* payload,const struct pcap_pkthdr
     if((payload[CONTENT_B] == HANDSHAKE) && (payload[HANDSHAKE_B] == SERVER_HELLO)) {
         buffer[pos].server_hello = true;
     }
-
+    debug("SERVER INCRTEMENT \n");
     increment_count(pos,payload);
 }
 
@@ -291,9 +293,10 @@ int delete_item(int pos){
 
 void increment_count(int pos, u_char* payload){
     int content_type = payload[CONTENT_B];
-    debug("port %d on pos %d", pos, pos);
+    debug("port %d on pos %d", buffer[pos].client_port, pos);
 
     buffer[pos].packets++;
+    debug("buffer packets %d\n",buffer[pos].packets);
         //if (buffer[pos].packets >= 4 && buffer[pos].client_hello != true)
         //    {printf("NO SERVER_HELLO DELETE %d\n",port);delete_item(port);}
         //debug("A: %d:%02x",buffer[pos].client_port,content_type);
@@ -317,7 +320,7 @@ void print_conn(Ssl_data data){
     // yyyy-mm-dd hh:mm:ss.usec
     strftime(time, MAX_TIME-1, "%Y-%m-%d %X", lt);
     debug("PRINT AFTER TIME");
-    printf("%s.%lu,", time,data.time.tv_usec); // time
+    printf("%s.%06ld,", time,data.time.tv_usec); // time
     printf("%s,%d,%s,%s,",data.client_ip,data.client_port,data.server_ip,data.SNI); //ip addresses
     if (data.duration == -1) printf("%lu,%d,%c\n",data.size_in_B,data.packets,'-');
     else printf("%lu,%d,%f\n",data.size_in_B,data.packets,data.duration);
