@@ -13,7 +13,7 @@
 // SSL vzdy port 443
 // verziu ssl urcuje server
 //TODO <timestamp>,<client ip>,<client port>,<server ip>,<SNI>,<bytes>,<packets>,<duration sec>
-/*TODO
+/*TODO PREPODKLADA ZE PORT JE 443 AK JE INY TAK NEPOCITA SPOJENIA
  * KONTROLA VERZII -> ak nie je podporovana tak vypisat ze nie je podporovana na stderr a skip, 1.3 skip
  * VYPISAT NEUKONCENE SPOJENIA ALE IBA AK PRISIEL SERVER_HELLO TAKZE KONTROLA SERVE-hELLO
  * KONTROLA CI DANE ROZHRANIE EXISTUJE
@@ -166,24 +166,27 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     src_port = get_port(tcp, "src");
     dst_port = get_port(tcp,"dst");
 
-    if (src_port != SSL_PORT){
-        process_client(src_port,pkthdr,payload,&ip,tcp);
+    int pos = find_item(src_port);
+
+    if (((pos == NOT_FOUND && (!strcmp(check_flag(tcp),"SYN"))) || pos != NOT_FOUND)){
+        process_client(src_port,dst_port, payload, &ip, tcp, pkthdr);
     }
     else { // source is SSL
         process_server(tcp, payload);
     }
 }
 /*TODO SKUSIT TOTO VSETKO PREKOPIROVAT DO SUBORU */
-void process_client(unsigned short port, const struct pcap_pkthdr* pkthdr, u_char* payload, Ip_addr *ip, struct tcphdr* tcp){
+void process_client(unsigned short src_port, unsigned short dst_port, u_char *payload, Ip_addr *ip, struct tcphdr *tcp,
+                    const struct pcap_pkthdr *pkthdr) {
 
     char* flag = check_flag(tcp);
 
     if (!strcmp(flag,"SYN")) { // add new connection to buffer
-        Ssl_data ssl = init_item(port, pkthdr, ip);
+        Ssl_data ssl = init_item(src_port, dst_port, ip, pkthdr);
         append_item(&ssl);
     }
     else {
-        int pos = find_item(port);
+        int pos = find_item(src_port);
         if (pos == NOT_FOUND) return;
 
         if((payload[CONTENT_B] == HANDSHAKE) && (payload[HANDSHAKE_B] == CLIENT_HELLO)) {
@@ -222,10 +225,12 @@ void process_server(struct tcphdr *tcp, u_char *payload) {
     increment_count(pos,payload);
 }
 
-Ssl_data init_item(unsigned short client_port, const struct pcap_pkthdr *pkthdr, Ip_addr *ip) {
+Ssl_data
+init_item(unsigned short client_port, unsigned short server_port, Ip_addr *ip, const struct pcap_pkthdr *pkthdr) {
 
     Ssl_data ssl_connection;
     ssl_connection.client_port = client_port;
+    ssl_connection.server_port = server_port;
     ssl_connection.time.tv_sec = pkthdr->ts.tv_sec;
     ssl_connection.time.tv_usec = pkthdr->ts.tv_usec;
     ssl_connection.packets = 1;

@@ -58,10 +58,12 @@ int ppcap_loop(pcap_t* handler);
 int set_filter(pcap_t* handler,bpf_u_int32 netmask);
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet);
 /* process messages from client, port = client's port*/
-void process_client(unsigned short port, const struct pcap_pkthdr* pkthdr, u_char* payload, Ip_addr *ip, struct tcphdr* tcp);
+void process_client(unsigned short src_port, unsigned short dst_port, u_char *payload, Ip_addr *ip, struct tcphdr *tcp,
+                    const struct pcap_pkthdr *pkthdr);
 /* process messages from server */
 void process_server(struct tcphdr *tcp, u_char *payload);
-Ssl_data init_item(unsigned short client_port, const struct pcap_pkthdr *pkthdr, Ip_addr *ip);
+Ssl_data
+init_item(unsigned short client_port, unsigned short server_port, Ip_addr *ip, const struct pcap_pkthdr *pkthdr);
 /* inserts data in buffer */
 int append_item(Ssl_data* data);
 /* looks for item in buffer based on port, returns NULL if buffer doesn't contain the item, returns position if found the item and -1 if not */

@@ -35,7 +35,7 @@ typedef struct ssl_data {
     char* client_ip; //struct ip client_ip;
     unsigned client_port;
     char* server_ip;
-    char* server_port;
+    unsigned* server_port;
     char* SNI;
     unsigned long size_in_B;
     unsigned packets;
