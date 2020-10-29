@@ -141,28 +141,24 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     Ip_addr ip;
 
     ip_version = get_ip_version(packet);
-    printf("nechapem");
-    if (ip_version == 6) { //ipv6
 
+    if (ip_version == 6) { //ipv6
         ip6_hdr = (struct ip6_hdr *)(packet + ETHERNET_SIZE);
         iphdrlen = IPv6_HDR;
-        ip.src = (char*) malloc(sizeof(char)*128);
-        ip.dst = (char*) malloc(sizeof(char)*128);
+        ip.src = (char*) malloc(sizeof(char)*IPV6_LEN);
+        ip.dst = (char*) malloc(sizeof(char)*IPV6_LEN);
         get_ipv6_addr(ip6_hdr,ip.src, ip.dst);
     }
     else { // ipv4
-        //printf("wtf");
         iph = (struct iphdr*)(packet + ETHERNET_SIZE);
         iphdrlen = iph->ihl*4;
         // get source and destination ip address
-        ip.src = (char*) malloc(sizeof(char)*iphdrlen);
-        ip.dst = (char*) malloc(sizeof(char)*iphdrlen);
+        ip.src = (char*) malloc(sizeof(char)*IPV4_LEN);
+        ip.dst = (char*) malloc(sizeof(char)*IPV4_LEN);
         get_ip_addr(iph, ip.src, ip.dst, 0);
     }
 
-    //get_ip_addr(iph, ip.src, ip.dst, 0);
 
-    printf("idk %s %s\n",ip.dst,ip.src);
     tcp = (struct tcphdr*)(packet + iphdrlen + ETHERNET_SIZE);
     tcpheader_size = get_tcphdr_size(packet,iphdrlen);
 
@@ -177,9 +173,9 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
         process_server(tcp,payload,pkthdr);
     }
 }
-/*SKUSIT TOTO VSETKO PREKOPIROVAT DO SUBORU */
+/*TODO SKUSIT TOTO VSETKO PREKOPIROVAT DO SUBORU */
 void process_client(unsigned short port, const struct pcap_pkthdr* pkthdr, u_char* payload, Ip_addr *ip, struct tcphdr* tcp){
-
+    
     if (!strcmp(check_flag(tcp),"SYN")) { // add new connection to buffer
         Ssl_data ssl = init_item(port, pkthdr, ip);
         append_item(&ssl);

@@ -62,10 +62,10 @@ void get_ip_addr(struct iphdr *iph, char *src, char *dst, int version) {
 
 
 void get_ipv6_addr(struct ip6_hdr *iphdr, char *src, char *dst){
+
     char buf[INET6_ADDRSTRLEN];
 
     inet_ntop(AF_INET6, &(iphdr->ip6_src), buf, sizeof(buf));
-    printf("buffer %s\n",buf);
     strcpy(src, buf);
     inet_ntop(AF_INET6, &(iphdr->ip6_dst), buf, sizeof(buf));
     strcpy(dst, buf);

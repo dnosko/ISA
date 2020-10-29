@@ -38,6 +38,8 @@
 #define HANDSHAKE 0x16
 #define APP_DATA 0x17
 #define IPv6_HDR 40
+#define IPV4_LEN 32 // ip is 32b
+#define IPV6_LEN 128 //ips is 128b
 
 #define NOT_FOUND -1
 
