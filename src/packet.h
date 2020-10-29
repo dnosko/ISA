@@ -27,7 +27,7 @@
 #define SNI_EXT_OFFSET 9 // 9 bytes to get from type of extention to SNI name
 #define MIN_TCPHDR 20 // minimal size of tcp header is 20B
 #define SNI_TYPE 0x00
-#define IPV4 45 // ipv4 version in packet
+#define IPV4 0x45 // ipv4 version in packet
 #define VERSION 0 //version at 0th B
 
 typedef struct ssl_data {
@@ -44,7 +44,7 @@ typedef struct ssl_data {
 } Ssl_data;
 
 /*returns ip version, 4 if ipv4, 6 if ipv6*/
-int get_ip_version(u_char* packet);
+int get_ip_version(const u_char* packet);
 /* gets tcp header size*/
 int get_tcphdr_size(const u_char* packet, unsigned iphdrlen);
 /* returns port number, takes tcp header and type="src" for source port and "dst" for destination port */

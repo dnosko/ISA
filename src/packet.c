@@ -8,7 +8,7 @@
 #include "error.h"
 
 
-int get_ip_version(u_char * packet){
+int get_ip_version(const u_char * packet){
 
     int version = (packet + ETHERNET_SIZE)[VERSION];
 
@@ -52,7 +52,6 @@ void get_ip_addr(struct iphdr *iph, char *src, char *dst) {
     //https://blog.apnic.net/2017/10/24/raw-sockets-ipv6/
     //https://www.winsocketdotnetworkprogramming.com/winsock2programming/winsock2advancedInternet3c.html
     struct sockaddr_in source, dest;
-    printf("%d\n",iph->version);
 
     memset(&source, 0, sizeof(source));
     source.sin_addr.s_addr = iph->saddr;

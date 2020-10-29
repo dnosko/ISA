@@ -138,6 +138,7 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     int tcpheader_size;
     unsigned short src_port;
     int ip_version;
+    Ip_addr ip;
 
     ip_version = get_ip_version(packet);
 
@@ -148,7 +149,15 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     else { // ipv4
         iph = (struct iphdr*)(packet + ETHERNET_SIZE);
         iphdrlen = iph->ihl*4;
+        // get source and destination ip address
+
+        ip.src = (char*) malloc(sizeof(char)*iphdrlen);
+        ip.dst = (char*) malloc(sizeof(char)*iphdrlen);
+        get_ip_addr(iph,ip.src,ip.dst);
+        printf("idk %s %s\n",ip.dst,ip.src);
     }
+
+
 
     tcp = (struct tcphdr*)(packet + iphdrlen + ETHERNET_SIZE);
     tcpheader_size = get_tcphdr_size(packet,iphdrlen);
@@ -158,17 +167,17 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     src_port = get_port(tcp, "src");
 
     if (src_port != SSL_PORT){
-        process_client(src_port,pkthdr,payload,iph,tcp);
+        process_client(src_port,pkthdr,payload,&ip,tcp);
     }
     else { // source is SSL
         process_server(tcp,payload,pkthdr);
     }
 }
 /*SKUSIT TOTO VSETKO PREKOPIROVAT DO SUBORU */
-void process_client(unsigned short port,const struct pcap_pkthdr* pkthdr,u_char* payload,struct iphdr* iph,struct tcphdr* tcp){
+void process_client(unsigned short port, const struct pcap_pkthdr* pkthdr, u_char* payload, Ip_addr *ip, struct tcphdr* tcp){
 
     if (!strcmp(check_flag(tcp),"SYN")) { // add new connection to buffer
-        Ssl_data ssl = init_item(port, pkthdr, iph);
+        Ssl_data ssl = init_item(port, pkthdr, ip);
         append_item(&ssl);
     }
     else {
@@ -210,20 +219,17 @@ void process_server(struct tcphdr* tcp, u_char* payload,const struct pcap_pkthdr
     }
 }
 
-Ssl_data init_item(unsigned short client_port, const struct pcap_pkthdr *pkthdr, struct iphdr *iph) {
+Ssl_data init_item(unsigned short client_port, const struct pcap_pkthdr *pkthdr, Ip_addr *ip) {
 
     Ssl_data ssl_connection;
     ssl_connection.client_port = client_port;
     ssl_connection.time.tv_sec = pkthdr->ts.tv_sec;
     ssl_connection.time.tv_usec = pkthdr->ts.tv_usec;
     ssl_connection.packets = 1;
-    // get source and destination ip address
-    char* src = (char*) malloc(sizeof(char)*iph->ihl*4);
-    char *dst = (char*) malloc(sizeof(char)*iph->ihl*4);
-    get_ip_addr(iph,src,dst);
+
     ssl_connection.size_in_B = 0;
-    ssl_connection.client_ip = src;
-    ssl_connection.server_ip = dst;
+    ssl_connection.client_ip = ip->src;
+    ssl_connection.server_ip = ip->dst;
 
     return ssl_connection;
 }
