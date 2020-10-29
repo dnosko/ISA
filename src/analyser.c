@@ -145,6 +145,9 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     if (ip_version == 6) { //ipv6
         ip6_hdr = (struct ip6_hdr *)(packet + ETHERNET_SIZE);
         iphdrlen = IPv6_HDR;
+        ip.src = (char*) malloc(sizeof(char)*iphdrlen);
+        ip.dst = (char*) malloc(sizeof(char)*iphdrlen);
+        get_ipv6_addr(ip6_hdr,ip.src, ip.dst);
     }
     else { // ipv4
         iph = (struct iphdr*)(packet + ETHERNET_SIZE);
@@ -153,11 +156,11 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
 
         ip.src = (char*) malloc(sizeof(char)*iphdrlen);
         ip.dst = (char*) malloc(sizeof(char)*iphdrlen);
-        get_ip_addr(iph,ip.src,ip.dst);
+        get_ip_addr(iph, ip.src, ip.dst, 0);
         printf("idk %s %s\n",ip.dst,ip.src);
     }
 
-
+    //get_ip_addr(iph, ip.src, ip.dst, 0);
 
     tcp = (struct tcphdr*)(packet + iphdrlen + ETHERNET_SIZE);
     tcpheader_size = get_tcphdr_size(packet,iphdrlen);

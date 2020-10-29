@@ -4,6 +4,7 @@
  *        Monitoring SSL spojenia
  ****************************************/
 
+#include <netinet/in.h>
 #include "packet.h"
 #include "error.h"
 
@@ -45,12 +46,10 @@ char* check_flag(struct tcphdr *tcph){
     return "";
 }
 
-void get_ip_addr(struct iphdr *iph, char *src, char *dst) {
+void get_ip_addr(struct iphdr *iph, char *src, char *dst, int version) {
 
     //inet_ntop(AF_INET6, (void*)(&iph->ip6_src), source_ip, INET6_ADDRSTRLEN)
-    // pozri prednasky asi mozno tam bdue nejaky kod na ipv6
-    //https://blog.apnic.net/2017/10/24/raw-sockets-ipv6/
-    //https://www.winsocketdotnetworkprogramming.com/winsock2programming/winsock2advancedInternet3c.html
+    void *addr;
     struct sockaddr_in source, dest;
 
     memset(&source, 0, sizeof(source));
@@ -61,7 +60,16 @@ void get_ip_addr(struct iphdr *iph, char *src, char *dst) {
 
     strcpy(src, inet_ntoa(source.sin_addr));
     strcpy(dst, inet_ntoa(dest.sin_addr));
+}
 
+
+void get_ipv6_addr(struct ip6_hdr *iphdr, char *src, char *dst){
+    char buf[INET6_ADDRSTRLEN];
+
+    inet_ntop(AF_INET6, &(iphdr->ip6_src), buf, sizeof(buf));
+    strcpy(src, buf);
+    inet_ntop(AF_INET6, &(iphdr->ip6_dst), buf, sizeof(buf));
+    strcpy(dst, buf);
 }
 
 int get_len(u_char* payload, int position){

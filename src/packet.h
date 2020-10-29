@@ -51,8 +51,10 @@ int get_tcphdr_size(const u_char* packet, unsigned iphdrlen);
 unsigned short get_port(struct tcphdr *tcph,char* type);
 /* returns SYN if SYN flag is set and ACK not, returns FIN if FIN flag is set (client side) and empty string if other*/
 char* check_flag(struct tcphdr *tcph);
-/* returns IP adress, gets source if type = "src", destination if type = "dst" */
-void get_ip_addr(struct iphdr *iph, char *src, char *dst);
+/* gets IPv4 addresses*/
+void get_ip_addr(struct iphdr *iph, char *src, char *dst, int version);
+/*gets IPv6 address*/
+void get_ipv6_addr(struct ip6_hdr *iphdr, char *src, char *dst);
 /* returns length from ssl header*/
 int get_len(u_char* payload, int position);
 /* returns duration in seconds with precision on milliseconds  */
