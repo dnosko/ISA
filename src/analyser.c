@@ -7,14 +7,13 @@
 #include <netinet/ip6.h>
 #include "analyser.h"
 
-/* DOKUMENTACIA spojenie ukoncuje posledny TCp packet, po FIN od serveru
+/* DOKUMENTACIA ukoncenie FIN OD KLIENTA
  *
  * */
 // SSL vzdy port 443
 // verziu ssl urcuje server
 //TODO <timestamp>,<client ip>,<client port>,<server ip>,<SNI>,<bytes>,<packets>,<duration sec>
 /*TODO
- * IPV6
  * KONTROLA VERZII -> ak nie je podporovana tak vypisat ze nie je podporovana na stderr a skip, 1.3 skip
  * VYPISAT NEUKONCENE SPOJENIA ALE IBA AK PRISIEL SERVER_HELLO TAKZE KONTROLA SERVE-hELLO
  * KONTROLA CI DANE ROZHRANIE EXISTUJE
@@ -165,6 +164,7 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     payload = (u_char *)(packet + ETHERNET_SIZE + iphdrlen + tcpheader_size ); // this is ssl payload
 
     src_port = get_port(tcp, "src");
+    debug("PORT %d\n",src_port);
 
     if (src_port != SSL_PORT){
         process_client(src_port,pkthdr,payload,&ip,tcp);
@@ -175,14 +175,15 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
 }
 /*TODO SKUSIT TOTO VSETKO PREKOPIROVAT DO SUBORU */
 void process_client(unsigned short port, const struct pcap_pkthdr* pkthdr, u_char* payload, Ip_addr *ip, struct tcphdr* tcp){
-    
-    if (!strcmp(check_flag(tcp),"SYN")) { // add new connection to buffer
+
+    char* flag = check_flag(tcp);
+
+    if (!strcmp(flag,"SYN")) { // add new connection to buffer
         Ssl_data ssl = init_item(port, pkthdr, ip);
         append_item(&ssl);
     }
     else {
         int pos = find_item(port);
-
         if (pos == NOT_FOUND) return;
 
         if((payload[CONTENT_B] == HANDSHAKE) && (payload[HANDSHAKE_B] == CLIENT_HELLO)) {
@@ -191,6 +192,15 @@ void process_client(unsigned short port, const struct pcap_pkthdr* pkthdr, u_cha
         }
 
         increment_count(pos,payload);
+        if (buffer[pos].server_hello == true) {
+            if(strcmp(flag,"FIN") != 0) return;
+            debug("get_duration %f\n",get_duration(buffer[pos].time, pkthdr->ts));
+            buffer[pos].duration = get_duration(buffer[pos].time, pkthdr->ts);//get_duration(buffer[pos].time, pkthdr->ts);
+            debug("#### DELETE.%d: packets %d: duration %f",buffer[pos].client_port,buffer[pos].packets,buffer[pos].duration);
+            print_conn(buffer[pos]);
+            debug("PRINTED");
+            delete_item(pos);
+        }
     }
 }
 
@@ -208,15 +218,6 @@ void process_server(struct tcphdr* tcp, u_char* payload,const struct pcap_pkthdr
     }
 
     increment_count(pos,payload);
-
-    if (buffer[pos].server_hello == true) {
-        if(strcmp(check_flag(tcp),"FIN") != 0) return;
-        debug("get_duration %f\n",get_duration(buffer[pos].time, pkthdr->ts));
-        buffer[pos].duration = get_duration(buffer[pos].time, pkthdr->ts);//get_duration(buffer[pos].time, pkthdr->ts);
-        debug("#### DELETE.%d: packets %d: duration %f",buffer[pos].client_port,buffer[pos].packets,buffer[pos].duration);
-        print_conn(buffer[pos]);
-        delete_item(pos);
-    }
 }
 
 Ssl_data init_item(unsigned short client_port, const struct pcap_pkthdr *pkthdr, Ip_addr *ip) {
@@ -230,6 +231,7 @@ Ssl_data init_item(unsigned short client_port, const struct pcap_pkthdr *pkthdr,
     ssl_connection.size_in_B = 0;
     ssl_connection.client_ip = ip->src;
     ssl_connection.server_ip = ip->dst;
+    ssl_connection.server_hello = false;
 
     return ssl_connection;
 }
@@ -308,12 +310,13 @@ void increment_count(int pos, u_char* payload){
 
 void print_conn(Ssl_data data){
 
+    debug("PRINT START");
     // convert time
     struct tm* lt = localtime(&data.time.tv_sec);
     char time[MAX_TIME];
     // yyyy-mm-dd hh:mm:ss.usec
     strftime(time, MAX_TIME-1, "%Y-%m-%d %X", lt);
-
+    debug("PRINT AFTER TIME");
     printf("%s.%lu,", time,data.time.tv_usec); // time
     printf("%s,%d,%s,%s,",data.client_ip,data.client_port,data.server_ip,data.SNI); //ip addresses
     if (data.duration == -1) printf("%lu,%d,%c\n",data.size_in_B,data.packets,'-');

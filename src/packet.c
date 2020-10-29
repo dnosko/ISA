@@ -132,7 +132,7 @@ void add_sni(u_char* payload, int pos, Ssl_data* buffer){
 
     char* sni;
     int ext_B = get_ext_pos(payload); // get Bth where SNI extention starts
-
+    debug("ADD SNI %d, ext_b %d\n",pos,ext_B);
     if (ext_B != -1) {
         int len = (int)get_len(payload,ext_B); // get length of SNI
         sni = get_SNI(payload, ext_B,len+1); //extract SNI name
@@ -154,9 +154,9 @@ char* get_SNI(const u_char* packet, unsigned from_B, unsigned len) {
     pos = 0;
     end_sni = from_B+len;
     ret_val = 0;
-
+    debug("GETTING SNI from %d, len %d\n",from_B,len);
     for(unsigned i = from_B; i < end_sni; i++) {
-        //debug"packet %02X\n", (unsigned int) packet[i]);
+        //debug("packet %02X\n", (unsigned int) packet[i]);
         ret_val = convert_ascii((unsigned int) packet[i]);
         if (ret_val != '\0')
             ascii_str[pos] = ret_val;
