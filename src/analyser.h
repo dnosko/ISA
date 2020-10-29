@@ -62,6 +62,7 @@ void process_client(unsigned short src_port, unsigned short dst_port, u_char *pa
                     const struct pcap_pkthdr *pkthdr);
 /* process messages from server */
 void process_server(struct tcphdr *tcp, u_char *payload);
+/* init new connection*/
 Ssl_data init_item(unsigned short client_port, unsigned short server_port, Ip_addr *ip, const struct pcap_pkthdr *pkthdr);
 /* finalizes the connection */
 void finish(unsigned pos, struct timeval ts);
@@ -69,6 +70,7 @@ void finish(unsigned pos, struct timeval ts);
 int append_item(Ssl_data* data);
 /* looks for item in buffer based on port, returns NULL if buffer doesn't contain the item, returns position if found the item and -1 if not */
 int find_item(unsigned short port);
+/*deletes item from buffer at pos*/
 int delete_item(int pos);
 /* increments number of packets in given ssl connection and adds length of bytes from ssl header*/
 void increment_count(int pos, u_char* payload);

@@ -10,14 +10,11 @@
 /* DOKUMENTACIA ukoncenie ked pride FIN OD KLIENTA
  *
  * */
-// SSL vzdy port 443
 // verziu ssl urcuje server
 //TODO <timestamp>,<client ip>,<client port>,<server ip>,<SNI>,<bytes>,<packets>,<duration sec>
-/*TODO PREPODKLADA ZE PORT JE 443 AK JE INY TAK NEPOCITA SPOJENIA
+/*TODO
  * KONTROLA VERZII -> ak nie je podporovana tak vypisat ze nie je podporovana na stderr a skip, 1.3 skip
- * VYPISAT NEUKONCENE SPOJENIA ALE IBA AK PRISIEL SERVER_HELLO TAKZE KONTROLA SERVE-hELLO
  * KONTROLA CI DANE ROZHRANIE EXISTUJE
- * daj init, delete etc do ineho suboru, plus algoritmus na sorting popr bin strom
 */
 
 Ssl_data* buffer;
