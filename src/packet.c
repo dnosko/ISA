@@ -48,8 +48,6 @@ char* check_flag(struct tcphdr *tcph){
 
 void get_ip_addr(struct iphdr *iph, char *src, char *dst, int version) {
 
-    //inet_ntop(AF_INET6, (void*)(&iph->ip6_src), source_ip, INET6_ADDRSTRLEN)
-    void *addr;
     struct sockaddr_in source, dest;
 
     memset(&source, 0, sizeof(source));
@@ -67,6 +65,7 @@ void get_ipv6_addr(struct ip6_hdr *iphdr, char *src, char *dst){
     char buf[INET6_ADDRSTRLEN];
 
     inet_ntop(AF_INET6, &(iphdr->ip6_src), buf, sizeof(buf));
+    printf("buffer %s\n",buf);
     strcpy(src, buf);
     inet_ntop(AF_INET6, &(iphdr->ip6_dst), buf, sizeof(buf));
     strcpy(dst, buf);
