@@ -175,6 +175,7 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
         process_server(tcp, payload);
     }
 }
+
 /*TODO SKUSIT TOTO VSETKO PREKOPIROVAT DO SUBORU */
 void process_client(unsigned short src_port, unsigned short dst_port, u_char *payload, Ip_addr *ip, struct tcphdr *tcp,
                     const struct pcap_pkthdr *pkthdr) {
@@ -302,9 +303,8 @@ void increment_count(int pos, u_char* payload){
 
     buffer[pos].packets++;
     debug("buffer packets %d\n",buffer[pos].packets);
-        //if (buffer[pos].packets >= 4 && buffer[pos].client_hello != true)
-        //    {printf("NO SERVER_HELLO DELETE %d\n",port);delete_item(port);}
-        //debug("A: %d:%02x",buffer[pos].client_port,content_type);
+    debug("payload %0x %0x\n",payload[VERSION_B],payload[VERSION_B+1]);
+    debug("content %0x \n",content_type);
 
      if ((payload[VERSION_B] == 0x03) && ((payload[VERSION_B+1] == 0x03) ||
           payload[VERSION_B+1] == 0x01)) { //sometimes theres no ssl head
@@ -318,13 +318,13 @@ void increment_count(int pos, u_char* payload){
 
 void print_conn(Ssl_data data){
 
-    debug("PRINT START");
+
     // convert time
     struct tm* lt = localtime(&data.time.tv_sec);
     char time[MAX_TIME];
     // yyyy-mm-dd hh:mm:ss.usec
     strftime(time, MAX_TIME-1, "%Y-%m-%d %X", lt);
-    debug("PRINT AFTER TIME");
+
     printf("%s.%06ld,", time,data.time.tv_usec); // time
     printf("%s,%d,%s,%s,",data.client_ip,data.client_port,data.server_ip,data.SNI); //ip addresses
     if (data.duration == -1) printf("%lu,%d,%c\n",data.size_in_B,data.packets,'-');
