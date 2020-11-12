@@ -87,7 +87,7 @@ float get_duration(struct timeval start, struct timeval end){
     long sec = end.tv_sec - start.tv_sec;
     long usec = end.tv_usec - start.tv_usec;
     float usec_f = (float) usec;
-    usec_f = usec_f/NANO;
+    usec_f = usec_f/MICRO;
     float sum = sec + usec_f;
 
     return sum;
