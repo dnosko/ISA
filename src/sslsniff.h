@@ -10,5 +10,5 @@
 #include "error.h"
 #include "analyser.h"
 
-
+/* parses program arguments*/
 int parse_arg(int argc, char **argv, char** interface, char** in_file);
