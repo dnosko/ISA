@@ -4,9 +4,9 @@
  *        Monitoring SSL spojenia
  ****************************************/
 
+#include <linux/tcp.h>
 #include <zconf.h>
 #include <netinet/in.h>
-#include <netinet/tcp.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 #include <netinet/if_ether.h>
@@ -22,7 +22,7 @@
 #define SSLSNIFF_PACKET_H
 
 #define ETHERNET_SIZE sizeof(struct ethhdr)
-#define MILLI 1000 // to get milliseconds
+#define NANO 1000000 // to get milliseconds
 #define CIPHER_LEN 76 //76th and 77th B
 #define SNI_EXT_OFFSET 9 // 9 bytes to get from type of extention to SNI name
 #define MIN_TCPHDR 20 // minimal size of tcp header is 20B

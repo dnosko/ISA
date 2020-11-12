@@ -4,9 +4,9 @@
  *        Monitoring SSL spojenia
  ****************************************/
 
-#include <netinet/in.h>
 #include "packet.h"
 #include "error.h"
+#include <netinet/in.h>
 
 
 int get_ip_version(const u_char * packet){
@@ -37,10 +37,11 @@ unsigned short get_port(struct tcphdr *tcph,char* type){
 
 char* check_flag(struct tcphdr *tcph){
     // SYN SET AND ACK NOT
-    if ((tcph->th_flags & TH_SYN) && !(tcph->th_flags & TH_ACK))
+
+    if ((tcph->syn) && !(tcph->ack))
         return "SYN";
     // FIN AND ACK too, ending with client FIN or server fin??? zatial konci s klient fin
-    if (tcph->th_flags & TH_FIN)
+    if (tcph->fin)
         return "FIN";
 
     return "";
@@ -74,25 +75,22 @@ void get_ipv6_addr(struct ip6_hdr *iphdr, char *src, char *dst){
 int get_len(u_char* payload, int position){
     long len = 0;
     char hex_str[7];
- //debug("get_len 0x%02x%02x\n",payload[position], payload[position + 1]);
+
     sprintf(hex_str,"0x%02x%02x",payload[position], payload[position + 1]);
     len = strtol(hex_str, NULL, 16);
 
     return (int) len;
 }
 
-
 float get_duration(struct timeval start, struct timeval end){
 
-    long milisec_start = start.tv_sec * MILLI + start.tv_usec;
-    long milisec_end = end.tv_sec * MILLI + end.tv_usec;
-    long milisec = milisec_end - milisec_start;
-    float sec_ = (float) milisec;
-    float sec = sec_/1000 ;
+    long sec = end.tv_sec - start.tv_sec;
+    long usec = end.tv_usec - start.tv_usec;
+    float usec_f = (float) usec;
+    usec_f = usec_f/NANO;
+    float sum = sec + usec_f;
 
-    if (sec < 0)
-        sec *= -1;
-    return sec/MILLI;
+    return sum;
 }
 
 int get_ext_pos(u_char* payload){

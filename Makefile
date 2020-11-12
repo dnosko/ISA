@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -Ilib/ -g
+CFLAGS = -Wall -Wextra -Ilib/ -g 
 PCAPFLAG = -lpcap
 
 all: sslsniff
@@ -22,3 +22,4 @@ sslsniff: bin/sslsniff.o bin/analyser.o bin/packet.o bin/format.o
 
 clean:
 	rm bin/* sslsniff
+

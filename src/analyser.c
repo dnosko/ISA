@@ -88,7 +88,6 @@ int ppcap_loop(pcap_t* handler){
 
     int return_code = pcap_loop(handler,infinite_loop, process_packet, NULL);
     if (return_code == PCAP_ERROR || return_code == PCAP_ERROR_BREAK ) {
-        debug("here");
         //pcap_close(handler);
         return return_code;
     }
@@ -129,7 +128,6 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     struct iphdr* iph;
     struct ip6_hdr* ip6_hdr;
     unsigned short iphdrlen;
-    struct tcphdr* tcp;
     u_char *payload; /* Packet payload */
     int tcpheader_size;
     unsigned short src_port,dst_port;
@@ -155,7 +153,7 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     }
 
 
-    tcp = (struct tcphdr*)(packet + iphdrlen + ETHERNET_SIZE);
+    struct tcphdr* tcp = (struct tcphdr*)(packet + iphdrlen + ETHERNET_SIZE);
     tcpheader_size = get_tcphdr_size(packet,iphdrlen);
 
     payload = (u_char *)(packet + ETHERNET_SIZE + iphdrlen + tcpheader_size ); // this is ssl payload
@@ -173,7 +171,7 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     }
 }
 
-/*TODO SKUSIT TOTO VSETKO PREKOPIROVAT DO SUBORU */
+
 void process_client(unsigned short src_port, unsigned short dst_port, u_char *payload, Ip_addr *ip, struct tcphdr *tcp,
                     const struct pcap_pkthdr *pkthdr) {
 

@@ -7,7 +7,7 @@
 #ifndef ISA_ANALYSER_H
 #define ISA_ANALYSER_H
 
-#include <bits/types/FILE.h>
+//#include <bits/types/FILE.h>
 #include <pcap/pcap.h>
 #include <pcap.h>
 #include <stdio.h>
