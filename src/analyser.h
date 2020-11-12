@@ -48,22 +48,21 @@ typedef struct ip_addrs {
 } Ip_addr;
 
 
-//void print_packet(const u_char* packet, unsigned X);
-void intHandler(int signum);
 int open_handler(char* interface, char* pcap_file);
 int analyse_file_packets(pcap_t* handler);
 int analyse_interface_packets(pcap_t* handler,bpf_u_int32 pNet);
-int ppcap_loop(pcap_t* handler);
+int start_packet_processing(pcap_t* handler);
+/* clean unused items from buffer */
+void clean_buffer(int len);
 int set_filter(pcap_t* handler,bpf_u_int32 netmask);
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet);
 /* process messages from client, port = client's port*/
-void process_client(unsigned short src_port, unsigned short dst_port, u_char *payload, Ip_addr *ip, struct tcphdr *tcp,
-                    const struct pcap_pkthdr *pkthdr);
+void process_client(u_char *payload, struct tcphdr *tcp, const struct pcap_pkthdr *pkthdr, Ssl_data *ssl);
 /* process messages from server */
 void process_server(struct tcphdr *tcp, u_char *payload);
 /* init new connection*/
 Ssl_data init_item(unsigned short client_port, unsigned short server_port, Ip_addr *ip, const struct pcap_pkthdr *pkthdr);
-/* finalizes the connection */
+/* finalizes the connection, gets duration and prints the connection */
 void finish(unsigned pos, struct timeval ts);
 /* inserts data in buffer */
 int append_item(Ssl_data* data);
