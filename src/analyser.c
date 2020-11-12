@@ -51,7 +51,8 @@ int open_handler(char* interface, char* pcap_file) {
 
 
         if (pcap_lookupnet(interface, &pNet, &pMask, errbuf) == -1) {
-            err_msg(ERR_PCAP, "Error: %s", errbuf);
+            err_msg( "Error: %s", errbuf);
+            return ERR_PCAP;
         }
 
         handler = pcap_open_live(interface, BUFSIZ, 0, -1, errbuf);
@@ -250,7 +251,8 @@ int append_item(Ssl_data* data){
         buffer = realloc(buffer, buffer_len * sizeof(Ssl_data));
 
     if (!buffer) {
-        err_msg(ERR_MEMORY,"Error while reallocating memory");
+        err_msg("Error while reallocating memory");
+        return ERR_MEMORY;
     }
 
     buffer[buffer_len-1] = *data;
@@ -298,9 +300,11 @@ void increment_count(int pos, u_char* payload){
           payload[VERSION_B+1] == 0x01)) { //sometimes theres no ssl head
          if (content_type == HANDSHAKE || content_type == APP_DATA ||
              content_type == CIPHER || content_type == ALERT) {
-                //debug("getlen inc %d\n",get_len(payload,SSL_LEN));
                 buffer[pos].size_in_B += get_len(payload,SSL_LEN);
             }
+     }
+     else {
+         fprintf(stderr,"Version not supported.");
      }
 }
 

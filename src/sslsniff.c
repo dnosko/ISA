@@ -48,7 +48,6 @@ int parse_arg(int argc, char **argv, char** interface, char** in_file){
                 err_msg(ERR_ARG,"Option needs value.");
             default:
                 printf("Usage: -i interface -r file\n");
-                err_msg(ERR_ARG,"Unknown option: %c", optopt);
         }
 
     }

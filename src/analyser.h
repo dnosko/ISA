@@ -7,7 +7,7 @@
 #ifndef ISA_ANALYSER_H
 #define ISA_ANALYSER_H
 
-//#include <bits/types/FILE.h>
+
 #include <pcap/pcap.h>
 #include <pcap.h>
 #include <stdio.h>
@@ -23,8 +23,7 @@
 
 
 
-
-#define CHECK_NULL_HANDLER if (handler == NULL) {perror("Null handler"); err_msg(ERR_PCAP,"");}
+#define CHECK_NULL_HANDLER if (handler == NULL) {perror("Null handler"); return ERR_PCAP;}
 
 #define TCP_FILTER "tcp"
 #define CONTENT_B 0 // content type at 0 B

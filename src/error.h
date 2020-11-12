@@ -17,7 +17,7 @@
 #define ERR_PCAP -4
 #define ERR_FUN -5
 
-#define err_msg(code, fmt, ...) fprintf(stderr,"" fmt "\n",##__VA_ARGS__); return(code)
+#define err_msg(fmt, ...) fprintf(stderr,"" fmt "\n",##__VA_ARGS__)
 #define debug(fmt,...) fprintf(stderr,"DEBUG: " fmt "\n",##__VA_ARGS__)
 
 
