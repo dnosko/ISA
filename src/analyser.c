@@ -274,7 +274,7 @@ int find_item(unsigned short port){
 int delete_item(int pos){
 
     Ssl_data* temp = malloc((buffer_len - 1) * sizeof(Ssl_data)); // allocate an array with a size 1 less than the current one
-    if (temp == NULL) { err_msg(ERR_MEMORY,"ERR MEMORY");}
+    if (temp == NULL) { err_msg("ERR MEMORY"); return ERR_MEMORY;}
 
     if (pos != 0)
         memcpy(temp, buffer, pos * sizeof(Ssl_data)); // copy everything BEFORE the index
