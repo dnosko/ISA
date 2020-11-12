@@ -51,8 +51,7 @@ int open_handler(char* interface, char* pcap_file) {
 
 
         if (pcap_lookupnet(interface, &pNet, &pMask, errbuf) == -1) {
-            err_msg( "Error: %s", errbuf);
-            return ERR_PCAP;
+            err_msg(ERR_PCAP, "Error: %s", errbuf);
         }
 
         handler = pcap_open_live(interface, BUFSIZ, 0, -1, errbuf);
@@ -251,8 +250,7 @@ int append_item(Ssl_data* data){
         buffer = realloc(buffer, buffer_len * sizeof(Ssl_data));
 
     if (!buffer) {
-        err_msg("Error while reallocating memory");
-        return ERR_MEMORY;
+        err_msg(ERR_MEMORY,"Error while reallocating memory");
     }
 
     buffer[buffer_len-1] = *data;
@@ -274,7 +272,7 @@ int find_item(unsigned short port){
 int delete_item(int pos){
 
     Ssl_data* temp = malloc((buffer_len - 1) * sizeof(Ssl_data)); // allocate an array with a size 1 less than the current one
-    if (temp == NULL) { err_msg("ERR MEMORY"); return ERR_MEMORY;}
+    if (temp == NULL) { err_msg(ERR_MEMORY,"ERR MEMORY");}
 
     if (pos != 0)
         memcpy(temp, buffer, pos * sizeof(Ssl_data)); // copy everything BEFORE the index
