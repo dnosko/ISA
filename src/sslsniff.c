@@ -33,10 +33,10 @@ int parse_arg(int argc, char **argv, char** interface, char** in_file){
                 *interface = optarg;
                 break;
             case 'r':
-                debug("option: %c", opt);
+
                 debug("filename: %s", optarg);
                 /*  check extension  */
-                const char *dot = strrchr(optarg,'.');
+                char *dot = strrchr(optarg,'.');
 
                 if(!dot || dot == optarg || strcmp(dot,".pcapng") != 0) {
                     err_msg(ERR_FILE,"Extension must be pcapng");

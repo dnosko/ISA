@@ -56,8 +56,7 @@ int open_handler(char* interface, char* pcap_file) {
         pcap_close(handler);
 
     }
-
-
+    
     return OK;
 }
 
@@ -66,7 +65,12 @@ int analyse_file_packets(pcap_t* handler){
     if (set_filter(handler,PCAP_NETMASK_UNKNOWN) == ERR_PCAP)
         return ERR_PCAP;
 
-    return start_packet_processing(handler);
+    int ret;
+
+    ret = start_packet_processing(handler);
+    clean_buffer(buffer_len);
+
+    return ret;
 }
 
 int analyse_interface_packets(pcap_t* handler,bpf_u_int32 pNet) {
@@ -95,12 +99,13 @@ int start_packet_processing(pcap_t* handler){
 }
 
 /* clean unused items from buffer */
-void clean_buffer(int len){
+void clean_buffer(unsigned int len){
 
     while(len != 0) {
         len = len-1;
         delete_item(len);
     }
+    free(buffer);
 }
 
 int set_filter(pcap_t* handler,bpf_u_int32 netmask) {
@@ -140,17 +145,13 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     if (ip_version == 6) { //ipv6
         ip6_hdr = (struct ip6_hdr *)(packet + ETHERNET_SIZE);
         iphdrlen = IPv6_HDR;
-        ip.src = (char*) malloc(sizeof(char)*IPV6_LEN);
-        ip.dst = (char*) malloc(sizeof(char)*IPV6_LEN);
-        get_ipv6_addr(ip6_hdr,ip.src, ip.dst);
+        get_ipv6_addr(ip6_hdr,ip.version_src.src_6, ip.version_dst.dst_6);
     }
     else { // ipv4
         iph = (struct iphdr*)(packet + ETHERNET_SIZE);
         iphdrlen = iph->ihl*4;
         // get source and destination ip address
-        ip.src = (char*) malloc(sizeof(char)*IPV4_LEN);
-        ip.dst = (char*) malloc(sizeof(char)*IPV4_LEN);
-        get_ip_addr(iph, ip.src, ip.dst, 0);
+        get_ip_addr(iph, ip.version_src.src_4, ip.version_dst.dst_4, 0);
     }
 
 
@@ -190,7 +191,9 @@ void process_client(u_char *payload, struct tcphdr *tcp, const struct pcap_pkthd
             add_sni(payload,pos,buffer);
         }
 
-        increment_count(pos,payload);
+        increment_count_packets(pos);
+        increment_bytes(pos,payload);
+
         if (!strcmp(flag,"FIN")){
             finish(pos,pkthdr->ts);
         }
@@ -211,7 +214,8 @@ void process_server(struct tcphdr *tcp, u_char *payload) {
         buffer[pos].server_hello = true;
     }
 
-    increment_count(pos,payload);
+    increment_count_packets(pos);
+    increment_bytes(pos,payload);
 }
 
 Ssl_data init_item(unsigned short client_port, unsigned short server_port, Ip_addr *ip, const struct pcap_pkthdr *pkthdr) {
@@ -224,8 +228,8 @@ Ssl_data init_item(unsigned short client_port, unsigned short server_port, Ip_ad
     ssl_connection.packets = 1;
 
     ssl_connection.size_in_B = 0;
-    ssl_connection.client_ip = ip->src;
-    ssl_connection.server_ip = ip->dst;
+    ssl_connection.client_ip = (ip->version_src.src_6[0] != '\0') ? ip->version_src.src_6 : ip->version_src.src_4;
+    ssl_connection.server_ip = (ip->version_dst.dst_6[0] != '\0') ? ip->version_dst.dst_6 : ip->version_dst.dst_4;
     ssl_connection.server_hello = false;
 
     return ssl_connection;
@@ -246,12 +250,14 @@ int append_item(Ssl_data* data){
 
     if (!buffer[0].client_ip)
         buffer = malloc(sizeof(Ssl_data));
-    else
+    else {
         buffer = realloc(buffer, buffer_len * sizeof(Ssl_data));
+    }
 
-    if (!buffer) {
+    if (buffer == NULL) {
         err_msg(ERR_MEMORY,"Error while reallocating memory");
     }
+
 
     buffer[buffer_len-1] = *data;
 
@@ -274,14 +280,19 @@ int delete_item(int pos){
     Ssl_data* temp = malloc((buffer_len - 1) * sizeof(Ssl_data)); // allocate an array with a size 1 less than the current one
     if (temp == NULL) { err_msg(ERR_MEMORY,"ERR MEMORY");}
 
+    free(buffer[pos].client_ip);
+    free(buffer[pos].server_ip);
+    free(buffer[pos].server_port);
+    free(buffer[pos].SNI);
+
     if (pos != 0)
         memcpy(temp, buffer, pos * sizeof(Ssl_data)); // copy everything BEFORE the index
 
     if (pos != (buffer_len - 1))
         memcpy(temp + pos, buffer + pos + 1, (buffer_len - pos - 1) * sizeof(Ssl_data));// copy everything AFTER the index
 
-    if (!buffer)
-        free (buffer);
+    if (buffer != NULL)
+        free(buffer);
 
     buffer = temp;
     buffer_len--;
@@ -289,18 +300,21 @@ int delete_item(int pos){
     return OK;
 }
 
-void increment_count(int pos, u_char* payload){
+void increment_count_packets(int pos) {
+    buffer[pos].packets++;
+}
+
+void increment_bytes(int pos, u_char* payload){
+
     int content_type = payload[CONTENT_B];
 
-    buffer[pos].packets++;
-
-     if ((payload[VERSION_B] == 0x03) && ((payload[VERSION_B+1] == 0x03) ||
-          payload[VERSION_B+1] == 0x01)) { //sometimes theres no ssl head
-         if (content_type == HANDSHAKE || content_type == APP_DATA ||
-             content_type == CIPHER || content_type == ALERT) {
-                buffer[pos].size_in_B += get_len(payload,SSL_LEN);
-            }
-     }
+    if ((payload[VERSION_B] == 0x03) && ((payload[VERSION_B+1] == 0x03) ||
+                                         payload[VERSION_B+1] == 0x01)) { //sometimes theres no ssl head
+        if (content_type == HANDSHAKE || content_type == APP_DATA ||
+            content_type == CIPHER || content_type == ALERT) {
+            buffer[pos].size_in_B += get_len(payload,SSL_LEN);
+        }
+    }
 }
 
 

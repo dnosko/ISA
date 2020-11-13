@@ -43,8 +43,14 @@
 #define NOT_FOUND -1
 
 typedef struct ip_addrs {
-    char* src;
-    char* dst;
+    union Version_src {
+        char src_6[IPV6_LEN];
+        char src_4[IPV4_LEN];
+    } version_src;
+    union Version_dst {
+        char dst_6[IPV6_LEN];
+        char dst_4[IPV4_LEN];
+    } version_dst;
 } Ip_addr;
 
 
@@ -53,7 +59,7 @@ int analyse_file_packets(pcap_t* handler);
 int analyse_interface_packets(pcap_t* handler,bpf_u_int32 pNet);
 int start_packet_processing(pcap_t* handler);
 /* clean unused items from buffer */
-void clean_buffer(int len);
+void clean_buffer(unsigned int len);
 int set_filter(pcap_t* handler,bpf_u_int32 netmask);
 void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* packet);
 /* process messages from client, port = client's port*/
@@ -70,7 +76,9 @@ int append_item(Ssl_data* data);
 int find_item(unsigned short port);
 /*deletes item from buffer at pos*/
 int delete_item(int pos);
-/* increments number of packets in given ssl connection and adds length of bytes from ssl header*/
-void increment_count(int pos, u_char* payload);
+/* increments number of packets in given ssl connection*/
+void increment_count_packets(int pos);
+/* adds length of bytes from ssl header */
+void increment_bytes(int pos, u_char* payload);
 
 #endif //ISA_ANALYSER_H

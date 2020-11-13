@@ -147,7 +147,6 @@ char* get_SNI(const u_char* packet, unsigned from_B, unsigned len) {
     end_sni = from_B+len;
 
     for(unsigned i = from_B; i < end_sni; i++) {
-        //debug("packet %02X\n", (unsigned int) packet[i]);
         ret_val = convert_ascii((unsigned int) packet[i]);
         if (ret_val != '\0')
             ascii_str[pos] = ret_val;
@@ -171,4 +170,14 @@ void print_conn(Ssl_data data){
     printf("%s.%06ld,", time,data.time.tv_usec); // time
     printf("%s,%d,%s,%s,",data.client_ip,data.client_port,data.server_ip,data.SNI); //ip addresses
     printf("%lu,%d,%f\n",data.size_in_B,data.packets,data.duration);
+}
+
+char convert_ascii(unsigned int val) {
+    char ascii_val[2];
+    unsigned int decimal = val; //decimal
+    if ((32 <= decimal && decimal < 127)) { //printable chars
+        sprintf(ascii_val,"%c",val);
+        return ascii_val[0];
+    }
+    return '\0'; //non printable ascii
 }

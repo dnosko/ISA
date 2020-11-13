@@ -21,6 +21,7 @@
 #ifndef SSLSNIFF_PACKET_H
 #define SSLSNIFF_PACKET_H
 
+#define MAX_TIME 101
 #define ETHERNET_SIZE sizeof(struct ethhdr)
 #define MICRO 1000000 // to get milliseconds
 #define CIPHER_LEN 76 //76th and 77th B
@@ -68,5 +69,7 @@ void add_sni(u_char* payload, int pos, Ssl_data* buffer);
 char* get_SNI(const u_char* packet, unsigned from_B, unsigned len);
 /* prints connection */
 void print_conn(Ssl_data data);
+/* converts ascii values */
+char convert_ascii(unsigned int val);
 
 #endif //SSLSNIFF_PACKET_H
