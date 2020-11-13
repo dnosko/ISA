@@ -56,7 +56,7 @@ int open_handler(char* interface, char* pcap_file) {
         pcap_close(handler);
 
     }
-    
+
     return OK;
 }
 
@@ -231,13 +231,14 @@ Ssl_data init_item(unsigned short client_port, unsigned short server_port, Ip_ad
     ssl_connection.client_ip = (ip->version_src.src_6[0] != '\0') ? ip->version_src.src_6 : ip->version_src.src_4;
     ssl_connection.server_ip = (ip->version_dst.dst_6[0] != '\0') ? ip->version_dst.dst_6 : ip->version_dst.dst_4;
     ssl_connection.server_hello = false;
+    ssl_connection.client_hello = false;
 
     return ssl_connection;
 }
 
 void finish(unsigned pos, struct timeval ts){
 
-    if (buffer[pos].server_hello == true) {
+    if (buffer[pos].server_hello && buffer[pos].client_hello) {
         buffer[pos].duration = get_duration(buffer[pos].time,ts);
         print_conn(buffer[pos]);
         delete_item(pos);
@@ -278,11 +279,9 @@ int find_item(unsigned short port){
 int delete_item(int pos){
 
     Ssl_data* temp = malloc((buffer_len - 1) * sizeof(Ssl_data)); // allocate an array with a size 1 less than the current one
-    if (temp == NULL) { err_msg(ERR_MEMORY,"ERR MEMORY");}
+    if (temp == NULL) { err_msg(ERR_MEMORY,"Allocation failed.");}
 
-    free(buffer[pos].client_ip);
-    free(buffer[pos].server_ip);
-    free(buffer[pos].server_port);
+
     free(buffer[pos].SNI);
 
     if (pos != 0)
