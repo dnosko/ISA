@@ -155,7 +155,6 @@ char* get_SNI(const u_char* packet, unsigned from_B, unsigned len) {
         pos++;
     }
     ascii_str[len] = '\0';
-
     return ascii_str;
 }
 

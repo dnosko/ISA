@@ -36,6 +36,7 @@ int open_handler(char* interface, char* pcap_file) {
         pcap_close(handler);
 
         if (return_code != OK) {
+            printf("Error while analyzing file.");
             return return_code;
         }
     }
@@ -280,7 +281,6 @@ int delete_item(int pos){
 
     Ssl_data* temp = malloc((buffer_len - 1) * sizeof(Ssl_data)); // allocate an array with a size 1 less than the current one
     if (temp == NULL) { err_msg(ERR_MEMORY,"Allocation failed.");}
-
 
     free(buffer[pos].SNI);
 
