@@ -157,7 +157,7 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
 
 
     struct tcphdr* tcp = (struct tcphdr*)(packet + iphdrlen + ETHERNET_SIZE);
-    tcpheader_size = tcp->doff*4;
+    tcpheader_size =  tcp->doff*4;
 
     payload = (u_char *)(packet + ETHERNET_SIZE + iphdrlen + tcpheader_size ); // this is ssl payload
 
@@ -166,14 +166,22 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     dst_port = get_port(tcp,"dst");
 
     int pos = find_item(src_port);
+    printf("src %d dst %d ip %s ip %s\n",src_port,dst_port,ip.version_src.src_4,ip.version_dst.dst_4);
 
     if (((pos == NOT_FOUND && (!strcmp(check_flag(tcp),"SYN"))) || pos != NOT_FOUND)){
         Ssl_data ssl = init_item(src_port, dst_port, &ip, pkthdr);
         process_client(payload, tcp, pkthdr, &ssl);
+        int len = get_len(payload,SSL_LEN);
+        printf("len start: %d ",len);
+        printf("okk %02x %02x %02x %02x %02x\n",payload[0],payload[1],payload[2],payload[3],payload[4]);
     }
     else { // source is SSL
-        process_server(tcp, payload);
+        printf(" server\n");
+        process_server(tcp, payload, NULL);
+        //TODO SERVER PRIPOCITA TO ISTE
     }
+
+    printf("################\n");
 }
 
 
@@ -202,7 +210,7 @@ void process_client(u_char *payload, struct tcphdr *tcp, const struct pcap_pkthd
     }
 }
 
-void process_server(struct tcphdr *tcp, u_char *payload) {
+void process_server(struct tcphdr *tcp, u_char *payload, const struct pcap_pkthdr *pkthdr) {
 
     unsigned short client_port;
     int pos;
@@ -219,7 +227,6 @@ void process_server(struct tcphdr *tcp, u_char *payload) {
 
     increment_count_packets(pos);
     increment_bytes(pos,payload);
-
 
 }
 
@@ -306,17 +313,33 @@ int delete_item(int pos){
 
 void increment_count_packets(int pos) {
     buffer[pos].packets++;
+    printf("%d: ",buffer[pos].packets);
 }
 
 void increment_bytes(int pos, u_char* payload){
 
     int content_type = payload[CONTENT_B];
+    printf("content type %d\n",content_type);
+    int len = 0;
 
     if ((payload[VERSION_B] == 0x03) && ((payload[VERSION_B+1] == 0x03) ||
                                          payload[VERSION_B+1] == 0x01)) { //sometimes theres no ssl head
         if (content_type == HANDSHAKE || content_type == APP_DATA ||
             content_type == CIPHER || content_type == ALERT) {
-            buffer[pos].size_in_B += get_len(payload,SSL_LEN);
+            len = get_len(payload,SSL_LEN)+OFFSET;
+            //printf("okk %02x %02x %02x\n",payload[SSL_LEN],payload[SSL_LEN+1],payload[SSL_LEN+2]);
+            printf("LEN %d\n",len);
+            buffer[pos].size_in_B += len;
+            // check second header
+            int len_offset = len;
+            while (payload[len_offset] != '\0'){
+                printf("ok %02x %02x %02x\n",payload[len_offset],payload[len_offset+1],payload[len_offset+2]);
+                len = get_len(payload,len_offset+SSL_LEN) + OFFSET;
+                printf("next LEN %d \n",len);
+                buffer[pos].size_in_B += len;
+                len_offset = len_offset + len;
+                printf("end %02x %02x %02x\n",payload[len_offset],payload[len_offset+1],payload[len_offset+2]);
+            }
         }
     }
 }

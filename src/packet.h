@@ -22,7 +22,7 @@
 
 #define MAX_TIME 101
 #define ETHERNET_SIZE sizeof(struct ethhdr)
-#define MICRO 1000000 // to get milliseconds
+#define MICRO 1000000 // to get microseconds
 #define CIPHER_LEN 76 //76th and 77th B
 #define SNI_EXT_OFFSET 7 // 7 bytes to get from type of extention to SNI name
 #define SNI_TYPE 0x00

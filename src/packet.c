@@ -65,11 +65,10 @@ void get_ipv6_addr(struct ip6_hdr *iphdr, char *src, char *dst){
 
 int get_len(u_char* payload, int position){
     long len = 0;
-    char hex_str[7];
+    char hex_str[7] = "";
 
     sprintf(hex_str,"0x%02x%02x",payload[position], payload[position + 1]);
     len = strtol(hex_str, NULL, 16);
-
     return (int) len;
 }
 
@@ -89,7 +88,7 @@ int get_ext_pos(u_char* payload){
 
     int cipher_len,compr_pos,compr_len,exts_start,ext_type_pos,ext_len_pos,ext_len;
     int count = 0;// max  loops, SNi is always first or second extension
-
+    printf("addget ext pos");
     cipher_len  = get_len(payload,CIPHER_LEN);
 
     compr_pos = (CIPHER_LEN+1)+cipher_len;
@@ -102,6 +101,7 @@ int get_ext_pos(u_char* payload){
     ext_len_pos = ext_type_pos+2 ;
 
     while (!(payload[ext_type_pos] == SNI_TYPE && payload[ext_type_pos+1] == SNI_TYPE)){
+        printf("ext");
         ext_len = get_len(payload,ext_len_pos);
         ext_type_pos = ext_len+ext_len_pos+2;
         count++;
@@ -119,6 +119,7 @@ void add_sni(u_char* payload, int pos, Ssl_data* buffer){
     int ext_B = get_ext_pos(payload); // get Bth where SNI extension starts
 
     if (ext_B != -1) {
+        printf("add sni");
         int len = (int)get_len(payload,ext_B); // get length of SNI
         sni = get_SNI(payload, ext_B+2,len+2); //extract SNI name
         buffer[pos].SNI = sni;

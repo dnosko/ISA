@@ -25,6 +25,7 @@
 #define CHECK_NULL_HANDLER if (handler == NULL) {perror("Null handler"); return ERR_PCAP;}
 
 #define TCP_FILTER "tcp"
+#define OFFSET 5 // size of ssl header is SSL length plus 5 B before length information
 #define CONTENT_B 0 // content type at 0 B /* INDEXING FROM 0 */
 #define VERSION_B 1 // version at 1st and 2nd B
 #define SSL_LEN 3 // length of ssl packet at 3rd and 4th B
@@ -64,7 +65,7 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
 /* process messages from client, port = client's port*/
 void process_client(u_char *payload, struct tcphdr *tcp, const struct pcap_pkthdr *pkthdr, Ssl_data *ssl);
 /* process messages from server */
-void process_server(struct tcphdr *tcp, u_char *payload);
+void process_server(struct tcphdr *tcp, u_char *payload, const struct pcap_pkthdr *pkthdr);
 /* init new connection*/
 Ssl_data init_item(unsigned short client_port, unsigned short server_port, Ip_addr *ip, const struct pcap_pkthdr *pkthdr);
 /* finalizes the connection, gets duration and prints the connection */
