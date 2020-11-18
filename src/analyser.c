@@ -152,16 +152,17 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
         iph = (struct iphdr*)(packet + ETHERNET_SIZE);
         iphdrlen = iph->ihl*4;
         // get source and destination ip address
-        get_ip_addr(iph, ip.version_src.src_4, ip.version_dst.dst_4, 0);
+        get_ip_addr(iph, ip.version_src.src_4, ip.version_dst.dst_4);
     }
 
 
     struct tcphdr* tcp = (struct tcphdr*)(packet + iphdrlen + ETHERNET_SIZE);
-    tcpheader_size = get_tcphdr_size(packet,iphdrlen);
+    tcpheader_size = tcp->doff*4;
 
     payload = (u_char *)(packet + ETHERNET_SIZE + iphdrlen + tcpheader_size ); // this is ssl payload
 
     src_port = get_port(tcp, "src");
+
     dst_port = get_port(tcp,"dst");
 
     int pos = find_item(src_port);
@@ -215,8 +216,11 @@ void process_server(struct tcphdr *tcp, u_char *payload) {
         buffer[pos].server_hello = true;
     }
 
+
     increment_count_packets(pos);
     increment_bytes(pos,payload);
+
+
 }
 
 Ssl_data init_item(unsigned short client_port, unsigned short server_port, Ip_addr *ip, const struct pcap_pkthdr *pkthdr) {
@@ -250,7 +254,7 @@ int append_item(Ssl_data* data){
 
     buffer_len += 1;
 
-    if (!buffer[0].client_ip)
+    if (buffer == NULL)
         buffer = malloc(sizeof(Ssl_data));
     else {
         buffer = realloc(buffer, buffer_len * sizeof(Ssl_data));
@@ -282,7 +286,8 @@ int delete_item(int pos){
     Ssl_data* temp = malloc((buffer_len - 1) * sizeof(Ssl_data)); // allocate an array with a size 1 less than the current one
     if (temp == NULL) { err_msg(ERR_MEMORY,"Allocation failed.");}
 
-    free(buffer[pos].SNI);
+    if (buffer[pos].SNI != NULL)
+        free(buffer[pos].SNI);
 
     if (pos != 0)
         memcpy(temp, buffer, pos * sizeof(Ssl_data)); // copy everything BEFORE the index

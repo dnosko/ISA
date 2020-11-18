@@ -16,14 +16,6 @@ int get_ip_version(const u_char * packet){
     return (version == IPV4) ? 4 : 6;
 }
 
-int get_tcphdr_size(const u_char* packet, unsigned iphdrlen){
-    u_char* payload = (u_char *)(packet + ETHERNET_SIZE + iphdrlen);
-
-
-    if (payload[12] == 0x80) return 32; // when its set to 0x80 header is 32
-
-    return MIN_TCPHDR;
-}
 
 unsigned short get_port(struct tcphdr *tcph,char* type){
     if (!strcmp("src",type))
@@ -46,7 +38,7 @@ char* check_flag(struct tcphdr *tcph){
     return "";
 }
 
-void get_ip_addr(struct iphdr *iph, char *src, char *dst, int version) {
+void get_ip_addr(struct iphdr *iph, char *src, char *dst) {
 
     struct sockaddr_in source, dest;
 
@@ -116,6 +108,7 @@ int get_ext_pos(u_char* payload){
         if (count == 2) return -1;
     }
 
+
     return (ext_type_pos+SNI_EXT_OFFSET);
 }
 
@@ -127,7 +120,7 @@ void add_sni(u_char* payload, int pos, Ssl_data* buffer){
 
     if (ext_B != -1) {
         int len = (int)get_len(payload,ext_B); // get length of SNI
-        sni = get_SNI(payload, ext_B,len+1); //extract SNI name
+        sni = get_SNI(payload, ext_B+2,len+2); //extract SNI name
         buffer[pos].SNI = sni;
     }
     else {
@@ -144,7 +137,7 @@ char* get_SNI(const u_char* packet, unsigned from_B, unsigned len) {
 
     ascii_str = (char*) malloc(sizeof(char)*len+1);
     pos = 0;
-    end_sni = from_B+len;
+    end_sni = from_B+len-2;
 
     for(unsigned i = from_B; i < end_sni; i++) {
         ret_val = convert_ascii((unsigned int) packet[i]);
@@ -154,6 +147,7 @@ char* get_SNI(const u_char* packet, unsigned from_B, unsigned len) {
             ascii_str[pos] = '\0';
         pos++;
     }
+
     ascii_str[len] = '\0';
     return ascii_str;
 }

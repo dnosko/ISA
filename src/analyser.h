@@ -19,14 +19,13 @@
 #include <openssl/ssl.h>
 #include "packet.h"
 #include "error.h"
-#include "format.h"
 
 
 
 #define CHECK_NULL_HANDLER if (handler == NULL) {perror("Null handler"); return ERR_PCAP;}
 
 #define TCP_FILTER "tcp"
-#define CONTENT_B 0 // content type at 0 B
+#define CONTENT_B 0 // content type at 0 B /* INDEXING FROM 0 */
 #define VERSION_B 1 // version at 1st and 2nd B
 #define SSL_LEN 3 // length of ssl packet at 3rd and 4th B
 #define HANDSHAKE_B 5 // handshake type at 5th B
