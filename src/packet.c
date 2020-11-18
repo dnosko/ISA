@@ -31,6 +31,8 @@ char* check_flag(struct tcphdr *tcph){
 
     if ((tcph->syn) && !(tcph->ack))
         return "SYN";
+    if ((tcph->psh) && tcph->ack)
+        return "PSH";
     // FIN AND ACK too, ending with client FIN or server fin??? zatial konci s klient fin
     if (tcph->fin)
         return "FIN";
@@ -88,7 +90,7 @@ int get_ext_pos(u_char* payload){
 
     int cipher_len,compr_pos,compr_len,exts_start,ext_type_pos,ext_len_pos,ext_len;
     int count = 0;// max  loops, SNi is always first or second extension
-    printf("addget ext pos");
+
     cipher_len  = get_len(payload,CIPHER_LEN);
 
     compr_pos = (CIPHER_LEN+1)+cipher_len;
@@ -101,7 +103,7 @@ int get_ext_pos(u_char* payload){
     ext_len_pos = ext_type_pos+2 ;
 
     while (!(payload[ext_type_pos] == SNI_TYPE && payload[ext_type_pos+1] == SNI_TYPE)){
-        printf("ext");
+
         ext_len = get_len(payload,ext_len_pos);
         ext_type_pos = ext_len+ext_len_pos+2;
         count++;
@@ -119,7 +121,6 @@ void add_sni(u_char* payload, int pos, Ssl_data* buffer){
     int ext_B = get_ext_pos(payload); // get Bth where SNI extension starts
 
     if (ext_B != -1) {
-        printf("add sni");
         int len = (int)get_len(payload,ext_B); // get length of SNI
         sni = get_SNI(payload, ext_B+2,len+2); //extract SNI name
         buffer[pos].SNI = sni;
@@ -138,7 +139,7 @@ char* get_SNI(const u_char* packet, unsigned from_B, unsigned len) {
 
     ascii_str = (char*) malloc(sizeof(char)*len+1);
     pos = 0;
-    end_sni = from_B+len-2;
+    end_sni = from_B+len-1;
 
     for(unsigned i = from_B; i < end_sni; i++) {
         ret_val = convert_ascii((unsigned int) packet[i]);
@@ -163,7 +164,7 @@ void print_conn(Ssl_data data){
 
     printf("%s.%06ld,", time,data.time.tv_usec); // time
     printf("%s,%d,%s,%s,",data.client_ip,data.client_port,data.server_ip,data.SNI); //ip addresses
-    printf("%lu,%d,%f\n",data.size_in_B,data.packets,data.duration);
+    printf("%d,%d,%f\n",data.size_in_B,data.packets,data.duration);
 }
 
 char convert_ascii(unsigned int val) {

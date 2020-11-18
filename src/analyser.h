@@ -65,7 +65,7 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
 /* process messages from client, port = client's port*/
 void process_client(u_char *payload, struct tcphdr *tcp, const struct pcap_pkthdr *pkthdr, Ssl_data *ssl);
 /* process messages from server */
-void process_server(struct tcphdr *tcp, u_char *payload, const struct pcap_pkthdr *pkthdr);
+void process_server(struct tcphdr *tcp, u_char *payload);
 /* init new connection*/
 Ssl_data init_item(unsigned short client_port, unsigned short server_port, Ip_addr *ip, const struct pcap_pkthdr *pkthdr);
 /* finalizes the connection, gets duration and prints the connection */

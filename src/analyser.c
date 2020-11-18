@@ -7,10 +7,6 @@
 #include <netinet/ip6.h>
 #include "analyser.h"
 
-//TODO <timestamp>,<client ip>,<client port>,<server ip>,<SNI>,<bytes>,<packets>,<duration sec>
-/*TODO
- * KONTROLA VERZII -> ak nie je podporovana tak vypisat ze nie je podporovana na stderr a skip, 1.3 skip
-*/
 
 Ssl_data* buffer;
 unsigned buffer_len;
@@ -166,22 +162,22 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     dst_port = get_port(tcp,"dst");
 
     int pos = find_item(src_port);
-    printf("src %d dst %d ip %s ip %s\n",src_port,dst_port,ip.version_src.src_4,ip.version_dst.dst_4);
+    //printf("src %d dst %d ip %s ip %s\n",src_port,dst_port,ip.version_src.src_4,ip.version_dst.dst_4);
 
     if (((pos == NOT_FOUND && (!strcmp(check_flag(tcp),"SYN"))) || pos != NOT_FOUND)){
         Ssl_data ssl = init_item(src_port, dst_port, &ip, pkthdr);
         process_client(payload, tcp, pkthdr, &ssl);
-        int len = get_len(payload,SSL_LEN);
-        printf("len start: %d ",len);
-        printf("okk %02x %02x %02x %02x %02x\n",payload[0],payload[1],payload[2],payload[3],payload[4]);
+        //int len = get_len(payload,SSL_LEN);
+        //printf("len start: %d ",len);
+        //printf("okk %02x %02x %02x %02x %02x\n",payload[0],payload[1],payload[2],payload[3],payload[4]);
+        //printf("******************* %d\n",buffer[pos].size_in_B);
     }
     else { // source is SSL
-        printf(" server\n");
-        process_server(tcp, payload, NULL);
-        //TODO SERVER PRIPOCITA TO ISTE
+        process_server(tcp, payload);
     }
 
-    printf("################\n");
+
+   //printf("################\n");
 }
 
 
@@ -192,7 +188,7 @@ void process_client(u_char *payload, struct tcphdr *tcp, const struct pcap_pkthd
     if (!strcmp(flag,"SYN")) { // add new connection to buffer
         append_item(ssl);
     }
-    else {
+    else{
         int pos = find_item(ssl->client_port);
         if (pos == NOT_FOUND) return;
 
@@ -210,7 +206,7 @@ void process_client(u_char *payload, struct tcphdr *tcp, const struct pcap_pkthd
     }
 }
 
-void process_server(struct tcphdr *tcp, u_char *payload, const struct pcap_pkthdr *pkthdr) {
+void process_server(struct tcphdr *tcp, u_char *payload) {
 
     unsigned short client_port;
     int pos;
@@ -224,9 +220,9 @@ void process_server(struct tcphdr *tcp, u_char *payload, const struct pcap_pkthd
         buffer[pos].server_hello = true;
     }
 
-
     increment_count_packets(pos);
     increment_bytes(pos,payload);
+
 
 }
 
@@ -313,13 +309,11 @@ int delete_item(int pos){
 
 void increment_count_packets(int pos) {
     buffer[pos].packets++;
-    printf("%d: ",buffer[pos].packets);
 }
 
 void increment_bytes(int pos, u_char* payload){
 
     int content_type = payload[CONTENT_B];
-    printf("content type %d\n",content_type);
     int len = 0;
 
     if ((payload[VERSION_B] == 0x03) && ((payload[VERSION_B+1] == 0x03) ||
@@ -327,19 +321,22 @@ void increment_bytes(int pos, u_char* payload){
         if (content_type == HANDSHAKE || content_type == APP_DATA ||
             content_type == CIPHER || content_type == ALERT) {
             len = get_len(payload,SSL_LEN)+OFFSET;
-            //printf("okk %02x %02x %02x\n",payload[SSL_LEN],payload[SSL_LEN+1],payload[SSL_LEN+2]);
-            printf("LEN %d\n",len);
-            buffer[pos].size_in_B += len;
-            // check second header
+
+            //printf("LEN %d\n",len);
+
+            // check if theres more ssl headers in one packet
             int len_offset = len;
-            while (payload[len_offset] != '\0'){
-                printf("ok %02x %02x %02x\n",payload[len_offset],payload[len_offset+1],payload[len_offset+2]);
+            while (payload[len_offset] == HANDSHAKE || payload[len_offset] == APP_DATA ||
+                    payload[len_offset] == CIPHER || payload[len_offset] == ALERT){
+                //printf("ok %02x %02x %02x\n",payload[len_offset],payload[len_offset+1],payload[len_offset+2]);
                 len = get_len(payload,len_offset+SSL_LEN) + OFFSET;
-                printf("next LEN %d \n",len);
-                buffer[pos].size_in_B += len;
+                //printf("next LEN %d \n",len);
                 len_offset = len_offset + len;
-                printf("end %02x %02x %02x\n",payload[len_offset],payload[len_offset+1],payload[len_offset+2]);
+              //  printf("end %02x %02x %02x\n",payload[len_offset],payload[len_offset+1],payload[len_offset+2]);
             }
+            buffer[pos].size_in_B = buffer[pos].size_in_B + len_offset;
+            //printf("SIZE IN B %d\n",len_offset);
+            //printf("size buffer %d\n",buffer[pos].size_in_B);
         }
     }
 }
