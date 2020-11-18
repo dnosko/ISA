@@ -162,22 +162,15 @@ void process_packet(u_char *args,const struct pcap_pkthdr* pkthdr,const u_char* 
     dst_port = get_port(tcp,"dst");
 
     int pos = find_item(src_port);
-    //printf("src %d dst %d ip %s ip %s\n",src_port,dst_port,ip.version_src.src_4,ip.version_dst.dst_4);
 
     if (((pos == NOT_FOUND && (!strcmp(check_flag(tcp),"SYN"))) || pos != NOT_FOUND)){
         Ssl_data ssl = init_item(src_port, dst_port, &ip, pkthdr);
         process_client(payload, tcp, pkthdr, &ssl);
-        //int len = get_len(payload,SSL_LEN);
-        //printf("len start: %d ",len);
-        //printf("okk %02x %02x %02x %02x %02x\n",payload[0],payload[1],payload[2],payload[3],payload[4]);
-        //printf("******************* %d\n",buffer[pos].size_in_B);
     }
     else { // source is SSL
         process_server(tcp, payload);
     }
 
-
-   //printf("################\n");
 }
 
 
@@ -289,8 +282,6 @@ int delete_item(int pos){
     Ssl_data* temp = malloc((buffer_len - 1) * sizeof(Ssl_data)); // allocate an array with a size 1 less than the current one
     if (temp == NULL) { err_msg(ERR_MEMORY,"Allocation failed.");}
 
-    if (buffer[pos].SNI != NULL)
-        free(buffer[pos].SNI);
 
     if (pos != 0)
         memcpy(temp, buffer, pos * sizeof(Ssl_data)); // copy everything BEFORE the index
@@ -322,21 +313,14 @@ void increment_bytes(int pos, u_char* payload){
             content_type == CIPHER || content_type == ALERT) {
             len = get_len(payload,SSL_LEN)+OFFSET;
 
-            //printf("LEN %d\n",len);
-
             // check if theres more ssl headers in one packet
             int len_offset = len;
             while (payload[len_offset] == HANDSHAKE || payload[len_offset] == APP_DATA ||
                     payload[len_offset] == CIPHER || payload[len_offset] == ALERT){
-                //printf("ok %02x %02x %02x\n",payload[len_offset],payload[len_offset+1],payload[len_offset+2]);
                 len = get_len(payload,len_offset+SSL_LEN) + OFFSET;
-                //printf("next LEN %d \n",len);
                 len_offset = len_offset + len;
-              //  printf("end %02x %02x %02x\n",payload[len_offset],payload[len_offset+1],payload[len_offset+2]);
             }
             buffer[pos].size_in_B = buffer[pos].size_in_B + len_offset;
-            //printf("SIZE IN B %d\n",len_offset);
-            //printf("size buffer %d\n",buffer[pos].size_in_B);
         }
     }
 }
