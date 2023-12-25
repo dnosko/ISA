@@ -1,0 +1,20 @@
+SSLSNIFF(1)
+
+.SH NAME
+    sslsniff \- sledovanie ssl komunikácie
+    
+.SH SYNOPSIS
+    .B sslsniff 
+    [\fB\-r\fR \fI<file>\fR]
+    [\fB\-i\fR \fIinterface\fR]
+    
+.SH DESCRIPTION
+    .B sslsniff 
+    vypíše informácie o ukončených ssl spojeniach
+    
+.SH OPTIONS
+    .TP
+    .BR \-r \fIfile\fR
+    pcapng súbor so ssl spojeniami
+    .BR \-i \fIinterface\fR
+    rozhranie na ktorom sa má počúvať. Musí byť spustené ako root.
